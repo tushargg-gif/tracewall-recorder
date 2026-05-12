@@ -81,5 +81,5 @@ human_approval_required: true
     assert '"verdict": "Pass"' in verify.stdout
     report = run_cli(tmp_path, "report", "--print")
     assert report.returncode == 0, report.stderr
-    assert "AgentProof Report" in report.stdout
+    assert "AgentProof Recorder Report" in report.stdout
     assert "Score:" in report.stdout

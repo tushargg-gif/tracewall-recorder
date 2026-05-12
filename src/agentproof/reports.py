@@ -35,7 +35,7 @@ def render_markdown(run: dict[str, Any], verification: dict[str, Any]) -> str:
         if check["status"] in {"failed", "warning"}
     ]
     lines = [
-        "# AgentProof Report",
+        "# AgentProof Recorder Report",
         "",
         f"Task: {run.get('task_title', run.get('task_id'))}",
         f"Task ID: {run.get('task_id')}",

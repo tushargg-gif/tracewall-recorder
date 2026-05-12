@@ -132,11 +132,11 @@ def decision_event_payload(
     }
 
 
-def block_error(request_id: Any, message: str = "AgentProof blocked critical MCP policy violation.") -> dict[str, Any]:
+def block_error(request_id: Any, message: str = "AgentProof Recorder blocked critical MCP policy violation.") -> dict[str, Any]:
     return {"jsonrpc": "2.0", "id": request_id, "error": {"code": -32001, "message": message}}
 
 
-def approval_error(request_id: Any, message: str = "AgentProof approval was denied or timed out.") -> dict[str, Any]:
+def approval_error(request_id: Any, message: str = "AgentProof Recorder approval was denied or timed out.") -> dict[str, Any]:
     return {"jsonrpc": "2.0", "id": request_id, "error": {"code": -32002, "message": message}}
 
 

@@ -167,24 +167,24 @@ def active_run_id(cwd: Path | None = None) -> str:
     project_root = discover_project_root(cwd)
     active_file = project_root / AGENTPROOF_DIR / ACTIVE_RUN_FILE
     if not active_file.exists():
-        raise RuntimeError("No active AgentProof run found. Start one with `agentproof start`.")
+        raise RuntimeError("No active AgentProof Recorder run found. Start one with `agentproof start`.")
     run_id = active_file.read_text(encoding="utf-8").strip()
     if not run_id:
-        raise RuntimeError("Active AgentProof run file is empty.")
+        raise RuntimeError("Active AgentProof Recorder run file is empty.")
     return run_id
 
 
 def latest_run_id(cwd: Path | None = None) -> str:
     paths = paths_for_run(cwd=cwd)
     if not paths.runs_dir.exists():
-        raise RuntimeError("No AgentProof runs found.")
+        raise RuntimeError("No AgentProof Recorder runs found.")
     runs = sorted(
         [path for path in paths.runs_dir.iterdir() if path.is_dir()],
         key=lambda path: path.stat().st_mtime,
         reverse=True,
     )
     if not runs:
-        raise RuntimeError("No AgentProof runs found.")
+        raise RuntimeError("No AgentProof Recorder runs found.")
     return runs[0].name
 
 

@@ -24,11 +24,11 @@ from agentproof.verifier import verify_run
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="agentproof",
-        description="Record, verify, score, and report on agent work.",
+        description="AgentProof Recorder: record, verify, score, and report on agent work.",
     )
     subcommands = parser.add_subparsers(dest="command", required=True)
 
-    init = subcommands.add_parser("init", help="Create a starter AgentProof task contract.")
+    init = subcommands.add_parser("init", help="Create a starter AgentProof Recorder task contract.")
     init.add_argument("--force", action="store_true", help="Overwrite existing task contract.")
 
     start = subcommands.add_parser("start", help="Start recording an agent run.")
@@ -56,10 +56,14 @@ def build_parser() -> argparse.ArgumentParser:
     report.add_argument("--print", action="store_true", dest="print_report", help="Print Markdown report.")
     report.add_argument("--json", action="store_true", dest="json_report", help="Print JSON report.")
 
-    sidecar = subcommands.add_parser("sidecar", help="Run the local AgentProof sidecar service.")
+    sidecar = subcommands.add_parser("sidecar", help="Run the local AgentProof Recorder sidecar service.")
     sidecar.add_argument("--host", default="127.0.0.1")
     sidecar.add_argument("--port", default=8797, type=int)
     sidecar.add_argument("--root", default=".agentproof")
+    sidecar.add_argument("--auth-token", default=None, help="Require Bearer token auth for sidecar API requests.")
+
+    shell = subcommands.add_parser("shell", help="Show shell recording guidance.")
+    shell.add_argument("--run-id", default=None, help="Run ID to attach guidance to. Defaults to the active run.")
 
     mcp = subcommands.add_parser("mcp", help="Run MCP proxy modes.")
     mcp_subcommands = mcp.add_subparsers(dest="mcp_command", required=True)
@@ -91,6 +95,8 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_report(args)
         if args.command == "sidecar":
             return cmd_sidecar(args)
+        if args.command == "shell":
+            return cmd_shell(args)
         if args.command == "mcp":
             return cmd_mcp(args)
     except Exception as exc:
@@ -113,7 +119,7 @@ def cmd_init(args: argparse.Namespace) -> int:
 def cmd_start(args: argparse.Namespace) -> int:
     contract = load_contract(Path(args.task_file))
     run = create_run(contract, args.agent, cwd=Path.cwd())
-    print(f"Started AgentProof run: {run['run_id']}")
+    print(f"Started AgentProof Recorder run: {run['run_id']}")
     print(f"Task: {run['task_id']} - {run['task_title']}")
     return 0
 
@@ -136,7 +142,7 @@ def cmd_event(args: argparse.Namespace) -> int:
 
 def cmd_stop(args: argparse.Namespace) -> int:
     run = stop_run(args.run_id, args.final_response, cwd=Path.cwd())
-    print(f"Stopped AgentProof run: {run['run_id']}")
+    print(f"Stopped AgentProof Recorder run: {run['run_id']}")
     print(f"Changed files: {len(run.get('changed_files') or [])}")
     return 0
 
@@ -167,7 +173,23 @@ def cmd_report(args: argparse.Namespace) -> int:
 
 
 def cmd_sidecar(args: argparse.Namespace) -> int:
-    run_sidecar(args.host, args.port, args.root)
+    run_sidecar(args.host, args.port, args.root, auth_token=args.auth_token)
+    return 0
+
+
+def cmd_shell(args: argparse.Namespace) -> int:
+    run_id = args.run_id
+    if not run_id:
+        try:
+            run_id = latest_run_id(Path.cwd())
+        except RuntimeError:
+            run_id = None
+    print("agentproof shell is available as a lightweight placeholder.")
+    if run_id:
+        print(f"Current run: {run_id}")
+    else:
+        print("No active run found. Start one with `agentproof start --agent <name>`.")
+    print("For now, record commands with `agentproof run -- <command>`.")
     return 0
 
 

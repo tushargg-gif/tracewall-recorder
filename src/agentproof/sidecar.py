@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 import asyncio
+import sys
 import uuid
 
 import httpx
@@ -24,15 +25,29 @@ from agentproof.store import Store
 from agentproof.verifier import verify_run
 
 
-def create_app(root: Path | str = ".agentproof") -> FastAPI:
+def create_app(root: Path | str = ".agentproof", auth_token: str | None = None) -> FastAPI:
     root_path = Path(root).resolve()
     project_root = root_path.parent if root_path.name == ".agentproof" else root_path
     agentproof_root = project_root / ".agentproof"
     store = Store(agentproof_root)
-    app = FastAPI(title="AgentProof Sidecar")
+    app = FastAPI(title="AgentProof Recorder Sidecar")
     app.state.project_root = project_root
     app.state.store = store
     app.state.raw_proxy_headers = {}
+    app.state.auth_token = auth_token
+
+    @app.middleware("http")
+    async def require_auth(request: Request, call_next):
+        if request.url.path == "/health" or not app.state.auth_token:
+            return await call_next(request)
+        expected = f"Bearer {app.state.auth_token}"
+        if request.headers.get("authorization") != expected:
+            return JSONResponse({"detail": "Unauthorized"}, status_code=401)
+        return await call_next(request)
+
+    @app.get("/health")
+    def health() -> dict[str, str]:
+        return {"status": "ok"}
 
     @app.post("/v1/runs")
     def create_sidecar_run(body: dict[str, Any]) -> dict[str, Any]:
@@ -282,7 +297,12 @@ def merged_forward_headers(incoming: dict[str, str], configured: dict[str, str])
     return {**session_headers, **configured}
 
 
-def run_sidecar(host: str, port: int, root: str) -> None:
+def run_sidecar(host: str, port: int, root: str, auth_token: str | None = None) -> None:
     import uvicorn
 
-    uvicorn.run(create_app(root), host=host, port=port)
+    if host == "0.0.0.0" and not auth_token:
+        print(
+            "warning: AgentProof Recorder sidecar is bound to 0.0.0.0 without --auth-token",
+            file=sys.stderr,
+        )
+    uvicorn.run(create_app(root, auth_token=auth_token), host=host, port=port)

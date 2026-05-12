@@ -1,4 +1,4 @@
-# AgentProof Report
+# AgentProof Recorder Report
 
 Task: Bad orchestrated run
 Task ID: BAD-001
@@ -9,6 +9,10 @@ Duration: 0s
 Verdict: Fail
 Score: 55/100
 Risk: high
+Policy violations: 18
+Event chain: passed
+Secret redaction: passed
+MCP blocked: yes
 
 ## What Went Well
 - changed_files_recorded: 3 changed file(s) recorded.

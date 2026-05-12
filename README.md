@@ -1,18 +1,32 @@
-# AgentProof
+# AgentProof Recorder
 
-**AI coding agents say they are done. AgentProof checks.**
+**AI coding agents say they are done. AgentProof Recorder checks the evidence.**
 
-AgentProof is an open-source verification layer for AI agent work. It records what an agent did, checks the work against a task contract, detects policy violations, scores reliability, and generates local audit evidence before the work is trusted, reviewed, merged, or shipped.
+AgentProof Recorder is a local evidence recorder and verification layer for AI coding agents. It records and verifies what an AI coding agent actually did during a task, then turns that evidence into a risk score and report before the work is trusted, reviewed, merged, or shipped.
 
 You can use it with Cursor, Claude Code, Codex-style agents, Windsurf, terminal agents, MCP-based agents, or even human-assisted workflows.
 
-AgentProof does not replace your coding agent.
+AgentProof Recorder does not replace your coding agent.
 
 It acts as the black-box recorder, verifier, and risk report around the agent run.
 
 ---
 
-## Why AgentProof exists
+## 60-second example
+
+```bash
+pip install -e ".[dev]"
+agentproof init
+agentproof start --agent "claude-code"
+agentproof run -- pytest
+agentproof stop --final-response "Fixed auth bug"
+agentproof verify
+agentproof report --print
+```
+
+---
+
+## Why AgentProof Recorder exists
 
 AI agents are getting smarter fast, but agent reliability is still messy.
 
@@ -26,7 +40,7 @@ Common failure modes:
 - The agent completes a browser/API workflow incorrectly.
 - The agent produces an output, but no reliable evidence exists.
 
-AgentProof turns agent work into a verifiable run:
+AgentProof Recorder turns agent work into a verifiable run:
 
 ```text
 Task contract -> agent execution -> evidence capture -> verification -> reliability report
@@ -38,9 +52,9 @@ Do not trust an agent because it says "done." Trust the evidence.
 
 ---
 
-## What AgentProof does
+## What AgentProof Recorder does
 
-AgentProof helps answer five questions after an agent run:
+AgentProof Recorder helps answer five questions after an agent run:
 
 1. What did the agent change?
 2. What commands, tools, APIs, or browser actions did it perform?
@@ -48,7 +62,7 @@ AgentProof helps answer five questions after an agent run:
 4. Did it violate policy?
 5. Should a human trust, review, block, or rerun the work?
 
-AgentProof currently supports:
+AgentProof Recorder currently supports:
 
 - Local run recording
 - Task contracts
@@ -80,7 +94,7 @@ agentproof report --print
 Example report:
 
 ```text
-AgentProof Report
+AgentProof Recorder Report
 
 Verdict: Partial Pass
 Score: 82/100
@@ -101,7 +115,7 @@ Safe for human review. Do not auto-merge without checking the diff.
 
 ## Bad-agent E2E proof
 
-AgentProof is designed to catch bad or careless agent behavior.
+AgentProof Recorder is designed to catch bad or careless agent behavior.
 
 The repository includes a bad-agent E2E report at:
 
@@ -135,13 +149,13 @@ MCP response: JSON-RPC error -32001
 
 This is the core promise:
 
-AgentProof does not just record agent work. It catches bad agent behavior.
+AgentProof Recorder does not just record agent work. It catches bad agent behavior.
 
 ---
 
 ## Core workflow
 
-AgentProof follows a simple loop:
+AgentProof Recorder follows a simple loop:
 
 ```text
 1. Define the task contract
@@ -153,7 +167,7 @@ AgentProof follows a simple loop:
 7. Generate a report
 ```
 
-AgentProof stores local evidence under `.agentproof/`:
+AgentProof Recorder stores local evidence under `.agentproof/`:
 
 ```text
 .agentproof/
@@ -194,6 +208,8 @@ Run tests:
 pytest
 ```
 
+The main CLI command is still `agentproof`. The package also installs `agentproof-recorder` as an optional alias for the same CLI.
+
 Current automated test coverage includes negative cases for:
 
 - Forbidden paths
@@ -216,7 +232,7 @@ Current automated test coverage includes negative cases for:
 
 ## Basic usage
 
-### 1. Initialize AgentProof
+### 1. Initialize AgentProof Recorder
 
 ```bash
 agentproof init
@@ -228,7 +244,7 @@ This creates the local `.agentproof/` workspace.
 
 ### 2. Define or edit the task contract
 
-AgentProof uses a task contract to define what the agent is allowed to do and what success means.
+AgentProof Recorder uses a task contract to define what the agent is allowed to do and what success means.
 
 Example:
 
@@ -292,7 +308,7 @@ Examples:
 
 ### 4. Record command evidence
 
-Run verification-relevant commands through AgentProof:
+Run verification-relevant commands through AgentProof Recorder:
 
 ```bash
 agentproof run -- pytest
@@ -301,7 +317,7 @@ agentproof run -- npm run lint
 agentproof run -- python scripts/check_output.py
 ```
 
-AgentProof records:
+AgentProof Recorder records:
 
 - Command
 - Exit code
@@ -310,11 +326,19 @@ AgentProof records:
 - stdout/stderr logs
 - Failure status
 
+There is also a small placeholder command:
+
+```bash
+agentproof shell
+```
+
+For now it points you back to `agentproof run -- <command>`. Full automatic shell interception is still on the roadmap.
+
 ---
 
 ### 5. Record non-command events
 
-AgentProof can also record API, browser, tool, artifact, and LLM events.
+AgentProof Recorder can also record API, browser, tool, artifact, and LLM events.
 
 ```bash
 agentproof event network.request --payload '{"url":"https://api.example.com/data","status_code":200}'
@@ -363,7 +387,7 @@ agentproof stop --final-response "Fixed the issue and added a regression test."
 agentproof verify
 ```
 
-AgentProof checks the run against the task contract and recorded evidence.
+AgentProof Recorder checks the run against the task contract and recorded evidence.
 
 ---
 
@@ -379,7 +403,7 @@ Reports are available as Markdown and JSON.
 
 ## Verification checks
 
-AgentProof currently verifies multiple work types.
+AgentProof Recorder currently verifies multiple work types.
 
 ### Coding verification
 
@@ -544,15 +568,22 @@ mcp_policy:
 
 ## Local sidecar mode
 
-AgentProof can run as a local sidecar for a master agent, orchestrator, or external automation system.
+AgentProof Recorder can run as a local sidecar for a master agent, orchestrator, or external automation system.
 
 ```bash
 agentproof sidecar --host 127.0.0.1 --port 8797 --root .agentproof
 ```
 
+If you bind the sidecar beyond localhost, use an auth token:
+
+```bash
+agentproof sidecar --host 0.0.0.0 --port 8797 --auth-token "$AGENTPROOF_TOKEN"
+```
+
 The sidecar exposes local APIs for:
 
 ```text
+GET  /health
 POST /v1/runs
 POST /v1/runs/{run_id}/events
 POST /v1/runs/{run_id}/stop
@@ -565,6 +596,12 @@ POST /v1/approvals/{approval_id}/approve
 POST /v1/approvals/{approval_id}/deny
 POST /v1/mcp/proxies
 POST /mcp/{proxy_id}
+```
+
+When `--auth-token` is set, every endpoint except `/health` requires:
+
+```text
+Authorization: Bearer <token>
 ```
 
 Create a run:
@@ -596,7 +633,7 @@ approval_gates   Pause risky MCP actions until approval or timeout
 
 ## MCP proxy
 
-AgentProof can sit between an agent and MCP tools to record evidence and enforce policy.
+AgentProof Recorder can sit between an agent and MCP tools to record evidence and enforce policy.
 
 For a local stdio MCP server:
 
@@ -618,7 +655,7 @@ For a Streamable HTTP MCP server, register a proxy through the sidecar:
 }
 ```
 
-AgentProof records MCP traffic as evidence:
+AgentProof Recorder records MCP traffic as evidence:
 
 ```text
 mcp.initialize
@@ -653,11 +690,11 @@ cookie
 
 ## Evidence integrity
 
-AgentProof writes raw evidence as append-only JSONL with event hash chaining.
+AgentProof Recorder writes raw evidence as append-only JSONL with event hash chaining.
 
 This helps detect event-log tampering during local verification.
 
-AgentProof also stores a SQLite index for easier queries over:
+AgentProof Recorder also stores a SQLite index for easier queries over:
 
 - Runs
 - Events
@@ -673,9 +710,9 @@ Local evidence is tamper-evident, not tamper-proof. For high-trust enterprise or
 
 ---
 
-## What AgentProof is not
+## What AgentProof Recorder is not
 
-AgentProof is not:
+AgentProof Recorder is not:
 
 - A coding agent
 - An LLM framework
@@ -685,7 +722,7 @@ AgentProof is not:
 - A guarantee that agent output is correct
 - An insurance product
 
-AgentProof is an evidence and verification layer.
+AgentProof Recorder is an evidence and verification layer.
 
 It helps teams decide whether agent work should be trusted, reviewed, blocked, rerun, or escalated.
 
@@ -724,7 +761,7 @@ Long-term:
 
 ## Use cases
 
-AgentProof is useful for:
+AgentProof Recorder is useful for:
 
 - Developers using AI coding agents
 - Engineering teams reviewing agent-generated PRs
@@ -739,7 +776,7 @@ AgentProof is useful for:
 ## Repository structure
 
 ```text
-src/agentproof/     Core AgentProof package
+src/agentproof/     Core AgentProof Recorder package
 tests/              Automated test suite
 report.md           Example bad-agent report
 .agentproof/        Local evidence workspace, created at runtime
@@ -749,7 +786,7 @@ report.md           Example bad-agent report
 
 ## Contributing
 
-AgentProof is early. Contributions are welcome, especially around:
+AgentProof Recorder is early. Contributions are welcome, especially around:
 
 - New verifier plugins
 - Better scoring logic
@@ -791,18 +828,13 @@ software-testing
 
 ## License
 
-Add a license before public launch.
-
-Recommended options:
-
-- Apache-2.0 if you want permissive enterprise-friendly adoption with patent protection.
-- MIT if you want maximum simplicity.
+AgentProof Recorder is licensed under Apache-2.0. See [LICENSE](LICENSE).
 
 ---
 
 ## Status
 
-AgentProof is an early-stage open-source project.
+AgentProof Recorder is an early-stage open-source project.
 
 The current focus is narrow:
 

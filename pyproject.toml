@@ -3,11 +3,37 @@ requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "agentproof"
+name = "agentproof-recorder"
 version = "0.1.0"
-description = "Developer-first verification, monitoring, and risk scoring for AI-agent work."
+description = "Local evidence recorder and verification layer for AI coding agents."
 readme = "README.md"
 requires-python = ">=3.10"
+authors = [
+  { name = "Tushar Gautam", email = "jeetushargautamjee@gmail.com" },
+]
+license = "Apache-2.0"
+keywords = [
+  "ai-agents",
+  "agentic-ai",
+  "coding-agents",
+  "mcp",
+  "verification",
+  "agent-reliability",
+  "ai-security",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Security",
+  "Topic :: Software Development :: Testing",
+  "Topic :: Software Development :: Quality Assurance",
+]
 dependencies = [
   "fastapi>=0.115",
   "httpx>=0.27",
@@ -22,6 +48,12 @@ dev = [
 
 [project.scripts]
 agentproof = "agentproof.cli:main"
+agentproof-recorder = "agentproof.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/tushargg-gif/AgentProof"
+Repository = "https://github.com/tushargg-gif/AgentProof"
+Issues = "https://github.com/tushargg-gif/AgentProof/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]

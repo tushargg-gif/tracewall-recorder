@@ -42,7 +42,7 @@ def test_sidecar_run_event_stop_verify_and_report(tmp_path: Path):
     assert verify.json()["event_summary"]["network.request"] == 1
     markdown = client.get(f"/v1/runs/{run['run_id']}/report.md")
     assert markdown.status_code == 200
-    assert "AgentProof Report" in markdown.text
+    assert "AgentProof Recorder Report" in markdown.text
     report_json = client.get(f"/v1/runs/{run['run_id']}/report.json")
     assert report_json.status_code == 200
     assert report_json.json()["run"]["run_id"] == run["run_id"]
@@ -52,6 +52,28 @@ def test_sidecar_invalid_run_returns_404(tmp_path: Path):
     client = TestClient(create_app(tmp_path / ".agentproof"))
     response = client.get("/v1/runs/missing")
     assert response.status_code == 404
+
+
+def test_sidecar_auth_token_protects_non_health_endpoints(tmp_path: Path):
+    client = TestClient(create_app(tmp_path / ".agentproof", auth_token="test-token"))
+    health = client.get("/health")
+    assert health.status_code == 200
+    assert health.json() == {"status": "ok"}
+
+    unauthenticated = client.post("/v1/runs", json={})
+    assert unauthenticated.status_code == 401
+
+    authenticated = client.post(
+        "/v1/runs",
+        json={
+            "agent": "master-agent",
+            "orchestrator": "test",
+            "control_mode": "observe",
+            "task_contract": {"task_id": "AUTH", "title": "auth", "verification": {}},
+        },
+        headers={"Authorization": "Bearer test-token"},
+    )
+    assert authenticated.status_code == 200, authenticated.text
 
 
 def test_sidecar_concurrent_runs_do_not_mix_events(tmp_path: Path):

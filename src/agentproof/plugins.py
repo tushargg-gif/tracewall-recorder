@@ -10,6 +10,7 @@ import struct
 
 from agentproof.checks import check, sanitize_name
 from agentproof.contracts import TaskContract, match_command
+from agentproof.paths import safe_project_path
 from agentproof.recorder import sha256_file
 
 
@@ -123,7 +124,21 @@ def data_checks(contract: TaskContract, project_root: Path) -> list[dict[str, An
         if not path_value:
             continue
         relative_name = sanitize_name(path_value)
-        path = project_root / path_value
+        try:
+            path = safe_project_path(project_root, path_value)
+        except ValueError as exc:
+            checks.append(
+                check(
+                    f"data_{relative_name}_path",
+                    "failed",
+                    "Expected data path escapes the project root.",
+                    {"path": path_value, "error": str(exc)},
+                    policy_id="expected_data_path_escape",
+                    severity="critical",
+                    category="data",
+                )
+            )
+            continue
         exists = path.exists() and path.is_file()
         checks.append(
             check(
@@ -309,7 +324,21 @@ def artifact_checks(
         if not path_value:
             continue
         relative_name = sanitize_name(path_value)
-        path = project_root / path_value
+        try:
+            path = safe_project_path(project_root, path_value)
+        except ValueError as exc:
+            checks.append(
+                check(
+                    f"artifact_{relative_name}_path",
+                    "failed",
+                    "Expected artifact path escapes the project root.",
+                    {"path": path_value, "error": str(exc)},
+                    policy_id="expected_artifact_path_escape",
+                    severity="critical",
+                    category="artifact",
+                )
+            )
+            continue
         exists = path.exists() and path.is_file()
         checks.append(
             check(
