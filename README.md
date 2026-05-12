@@ -655,6 +655,8 @@ For a Streamable HTTP MCP server, register a proxy through the sidecar:
 }
 ```
 
+MCP HTTP proxy targets are validated to reduce SSRF/local-network forwarding risk. Use `--allowed-mcp-target-host` to restrict proxy registration to known MCP hosts.
+
 AgentProof Recorder records MCP traffic as evidence:
 
 ```text

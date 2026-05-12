@@ -61,6 +61,12 @@ def build_parser() -> argparse.ArgumentParser:
     sidecar.add_argument("--port", default=8797, type=int)
     sidecar.add_argument("--root", default=".agentproof")
     sidecar.add_argument("--auth-token", default=None, help="Require Bearer token auth for sidecar API requests.")
+    sidecar.add_argument(
+        "--allowed-mcp-target-host",
+        action="append",
+        default=[],
+        help="Allow Streamable HTTP MCP proxy registration only for this target hostname. Repeatable.",
+    )
 
     shell = subcommands.add_parser("shell", help="Show shell recording guidance.")
     shell.add_argument("--run-id", default=None, help="Run ID to attach guidance to. Defaults to the active run.")
@@ -173,7 +179,13 @@ def cmd_report(args: argparse.Namespace) -> int:
 
 
 def cmd_sidecar(args: argparse.Namespace) -> int:
-    run_sidecar(args.host, args.port, args.root, auth_token=args.auth_token)
+    run_sidecar(
+        args.host,
+        args.port,
+        args.root,
+        auth_token=args.auth_token,
+        allowed_mcp_target_hosts=args.allowed_mcp_target_host,
+    )
     return 0
 
 

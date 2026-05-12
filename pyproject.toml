@@ -51,9 +51,9 @@ agentproof = "agentproof.cli:main"
 agentproof-recorder = "agentproof.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/tushargg-gif/AgentProof"
-Repository = "https://github.com/tushargg-gif/AgentProof"
-Issues = "https://github.com/tushargg-gif/AgentProof/issues"
+Homepage = "https://github.com/tushargg-gif/AgentProof-Recorder"
+Repository = "https://github.com/tushargg-gif/AgentProof-Recorder"
+Issues = "https://github.com/tushargg-gif/AgentProof-Recorder/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]

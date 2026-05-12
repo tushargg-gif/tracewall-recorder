@@ -155,6 +155,87 @@ def test_http_mcp_proxy_forwards_and_redacts_headers(monkeypatch, tmp_path: Path
     assert "mcp.tool.call.finished" in events
 
 
+def test_http_mcp_proxy_rejects_localhost_target(tmp_path: Path):
+    client = TestClient(create_app(tmp_path / ".agentproof"))
+    run = client.post(
+        "/v1/runs",
+        json={
+            "agent": "master",
+            "orchestrator": "orch",
+            "control_mode": "observe",
+            "task_contract": {"task_id": "LOCAL", "title": "Local", "verification": {}},
+        },
+    ).json()
+    response = client.post(
+        "/v1/mcp/proxies",
+        json={
+            "run_id": run["run_id"],
+            "server_name": "local-tools",
+            "transport": "streamable_http",
+            "target_url": "http://localhost:3000/mcp",
+        },
+    )
+    assert response.status_code == 400
+    assert "localhost" in response.text
+
+
+def test_http_mcp_proxy_allows_external_target_with_allowlist(tmp_path: Path):
+    client = TestClient(
+        create_app(
+            tmp_path / ".agentproof",
+            allowed_mcp_target_hosts=["tools.example.com"],
+        )
+    )
+    run = client.post(
+        "/v1/runs",
+        json={
+            "agent": "master",
+            "orchestrator": "orch",
+            "control_mode": "observe",
+            "task_contract": {"task_id": "ALLOW", "title": "Allow", "verification": {}},
+        },
+    ).json()
+    response = client.post(
+        "/v1/mcp/proxies",
+        json={
+            "run_id": run["run_id"],
+            "server_name": "remote-tools",
+            "transport": "streamable_http",
+            "target_url": "https://tools.example.com/mcp",
+        },
+    )
+    assert response.status_code == 200, response.text
+
+
+def test_http_mcp_proxy_rejects_non_allowlisted_target(tmp_path: Path):
+    client = TestClient(
+        create_app(
+            tmp_path / ".agentproof",
+            allowed_mcp_target_hosts=["tools.example.com"],
+        )
+    )
+    run = client.post(
+        "/v1/runs",
+        json={
+            "agent": "master",
+            "orchestrator": "orch",
+            "control_mode": "observe",
+            "task_contract": {"task_id": "DENY", "title": "Deny", "verification": {}},
+        },
+    ).json()
+    response = client.post(
+        "/v1/mcp/proxies",
+        json={
+            "run_id": run["run_id"],
+            "server_name": "remote-tools",
+            "transport": "streamable_http",
+            "target_url": "https://other.example.com/mcp",
+        },
+    )
+    assert response.status_code == 400
+    assert "allowed host" in response.text
+
+
 def test_http_mcp_approval_timeout_returns_error(tmp_path: Path):
     client = TestClient(create_app(tmp_path / ".agentproof"))
     run = client.post(

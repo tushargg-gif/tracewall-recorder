@@ -19,13 +19,18 @@ from agentproof.mcp_policy import (
     evaluate_mcp_request,
     method_event_type,
 )
+from agentproof.mcp_targets import validate_mcp_target_url
 from agentproof.recorder import create_run, paths_for_run, read_json, record_event, stop_run, write_json
 from agentproof.reports import generate_report
 from agentproof.store import Store
 from agentproof.verifier import verify_run
 
 
-def create_app(root: Path | str = ".agentproof", auth_token: str | None = None) -> FastAPI:
+def create_app(
+    root: Path | str = ".agentproof",
+    auth_token: str | None = None,
+    allowed_mcp_target_hosts: list[str] | None = None,
+) -> FastAPI:
     root_path = Path(root).resolve()
     project_root = root_path.parent if root_path.name == ".agentproof" else root_path
     agentproof_root = project_root / ".agentproof"
@@ -35,6 +40,7 @@ def create_app(root: Path | str = ".agentproof", auth_token: str | None = None) 
     app.state.store = store
     app.state.raw_proxy_headers = {}
     app.state.auth_token = auth_token
+    app.state.allowed_mcp_target_hosts = allowed_mcp_target_hosts or []
 
     @app.middleware("http")
     async def require_auth(request: Request, call_next):
@@ -164,8 +170,13 @@ def create_app(root: Path | str = ".agentproof", auth_token: str | None = None) 
         }
         if proxy["transport"] != "streamable_http":
             raise HTTPException(status_code=400, detail="Only streamable_http proxies are created over the sidecar API")
-        if not proxy["target_url"]:
-            raise HTTPException(status_code=400, detail="target_url is required")
+        try:
+            proxy["target_url"] = validate_mcp_target_url(
+                proxy["target_url"],
+                app.state.allowed_mcp_target_hosts,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
         store.create_mcp_proxy(proxy)
         app.state.raw_proxy_headers[proxy_id] = proxy["headers"]
         record_event(
@@ -297,7 +308,13 @@ def merged_forward_headers(incoming: dict[str, str], configured: dict[str, str])
     return {**session_headers, **configured}
 
 
-def run_sidecar(host: str, port: int, root: str, auth_token: str | None = None) -> None:
+def run_sidecar(
+    host: str,
+    port: int,
+    root: str,
+    auth_token: str | None = None,
+    allowed_mcp_target_hosts: list[str] | None = None,
+) -> None:
     import uvicorn
 
     if host == "0.0.0.0" and not auth_token:
@@ -305,4 +322,12 @@ def run_sidecar(host: str, port: int, root: str, auth_token: str | None = None) 
             "warning: AgentProof Recorder sidecar is bound to 0.0.0.0 without --auth-token",
             file=sys.stderr,
         )
-    uvicorn.run(create_app(root, auth_token=auth_token), host=host, port=port)
+    uvicorn.run(
+        create_app(
+            root,
+            auth_token=auth_token,
+            allowed_mcp_target_hosts=allowed_mcp_target_hosts,
+        ),
+        host=host,
+        port=port,
+    )
