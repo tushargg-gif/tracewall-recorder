@@ -1,0 +1,49 @@
+name: Bug report
+description: Report something that is broken or confusing.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Include enough evidence for someone else to reproduce it.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect AgentProof Recorder to do?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction steps
+      description: Commands, task contract, and any relevant files.
+      placeholder: |
+        1. agentproof init
+        2. agentproof start --agent ...
+        3. agentproof run -- ...
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python version, package version or commit SHA.
+      placeholder: macOS 14, Python 3.12, commit abc123
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or report output
+      description: Paste relevant output. Redact secrets first.
+      render: shell
+

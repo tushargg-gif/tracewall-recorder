@@ -1,0 +1,36 @@
+name: Bad-agent case
+description: Share an agent failure AgentProof Recorder should detect.
+title: "[Bad agent case]: "
+labels: ["bad-agent-case", "verification"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for concrete agent failures. Do not include private code, credentials, customer data, or sensitive logs.
+  - type: textarea
+    id: task
+    attributes:
+      label: Agent task
+      description: What was the agent asked to do?
+    validations:
+      required: true
+  - type: textarea
+    id: bad_behavior
+    attributes:
+      label: What went wrong?
+      description: What did the agent do that should have been caught?
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: File changes, commands, MCP/tool calls, report output, or a sanitized reproduction.
+    validations:
+      required: true
+  - type: textarea
+    id: desired_check
+    attributes:
+      label: Desired detection
+      description: What should the verifier or policy engine flag?
+

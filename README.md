@@ -1,21 +1,71 @@
 # AgentProof Recorder
 
-**AI coding agents say they are done. AgentProof Recorder checks the evidence.**
+<p align="center"><strong>The black-box recorder for AI coding agents.</strong></p>
 
-AgentProof Recorder is a local evidence recorder and verification layer for AI coding agents. It records and verifies what an AI coding agent actually did during a task, then turns that evidence into a risk score and report before the work is trusted, reviewed, merged, or shipped.
+<p align="center">
+  AI coding agents say they are done. AgentProof Recorder checks the evidence.
+</p>
 
-You can use it with Cursor, Claude Code, Codex-style agents, Windsurf, terminal agents, MCP-based agents, or even human-assisted workflows.
+<p align="center">
+  <a href="https://github.com/tushargg-gif/AgentProof-Recorder/actions/workflows/tests.yml"><img alt="tests" src="https://github.com/tushargg-gif/AgentProof-Recorder/actions/workflows/tests.yml/badge.svg"></a>
+  <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-Apache--2.0-blue.svg"></a>
+  <a href="pyproject.toml"><img alt="python" src="https://img.shields.io/badge/python-3.10%2B-blue.svg"></a>
+  <a href="https://github.com/tushargg-gif/AgentProof-Recorder/stargazers"><img alt="github stars" src="https://img.shields.io/github/stars/tushargg-gif/AgentProof-Recorder?style=social"></a>
+</p>
 
-AgentProof Recorder does not replace your coding agent.
+<p align="center">
+  <a href="docs/quickstart.md">Docs</a> &middot;
+  <a href="docs/quickstart.md">Quickstart</a> &middot;
+  <a href="docs/examples.md">Examples</a> &middot;
+  <a href="docs/security-model.md">Security Model</a> &middot;
+  <a href="ROADMAP.md">Roadmap</a> &middot;
+  <a href="CONTRIBUTING.md">Contributing</a>
+</p>
 
-It acts as the black-box recorder, verifier, and risk report around the agent run.
+AgentProof Recorder is a local evidence recorder and verification layer for AI coding agents. It captures what an agent actually did during a task - file changes, commands, tests, final response, policy violations, MCP/tool calls, and tamper-evident event chains - then generates a trust report before code review or merge.
 
----
+> Early alpha: AgentProof Recorder is designed for local experimentation, agent-run evidence capture, and verification workflows. It does not claim to make local agents tamper-proof.
 
-## 60-second example
+## Why This Exists
+
+AI coding agents can claim success while:
+
+- skipping required tests
+- touching forbidden files
+- modifying unrelated paths
+- changing dependency files
+- making unsafe tool calls
+- producing output without evidence
+
+The bottleneck is moving from writing code to verifying agent work.
+
+AgentProof Recorder is built for that handoff. It does not replace CI, tests, or code review. It gives reviewers a local evidence trail before code moves into review or merge.
+
+## What AgentProof Recorder Does
+
+AgentProof Recorder records:
+
+- file changes
+- commands
+- tests
+- final response
+- policy violations
+- MCP/tool calls
+- tamper-evident local event chain
+
+Then it verifies the run against a task contract and generates a trust report.
+
+```text
+task contract -> agent run -> evidence capture -> verification -> trust report
+```
+
+## 60-Second Example
 
 ```bash
+git clone https://github.com/tushargg-gif/AgentProof-Recorder
+cd AgentProof-Recorder
 pip install -e ".[dev]"
+
 agentproof init
 agentproof start --agent "claude-code"
 agentproof run -- pytest
@@ -24,74 +74,19 @@ agentproof verify
 agentproof report --print
 ```
 
----
-
-## Why AgentProof Recorder exists
-
-AI agents are getting smarter fast, but agent reliability is still messy.
-
-Common failure modes:
-
-- The agent says it fixed the issue, but did not run the right tests.
-- The agent changes unrelated files.
-- The agent touches dependency files without approval.
-- The agent modifies secret-like files.
-- The agent uses a forbidden tool or command.
-- The agent completes a browser/API workflow incorrectly.
-- The agent produces an output, but no reliable evidence exists.
-
-AgentProof Recorder turns agent work into a verifiable run:
-
-```text
-Task contract -> agent execution -> evidence capture -> verification -> reliability report
-```
-
-The goal is simple:
-
-Do not trust an agent because it says "done." Trust the evidence.
-
----
-
-## What AgentProof Recorder does
-
-AgentProof Recorder helps answer five questions after an agent run:
-
-1. What did the agent change?
-2. What commands, tools, APIs, or browser actions did it perform?
-3. Did it follow the task contract?
-4. Did it violate policy?
-5. Should a human trust, review, block, or rerun the work?
-
-AgentProof Recorder currently supports:
-
-- Local run recording
-- Task contracts
-- Git/file-system evidence
-- Wrapped command execution
-- Universal agent events
-- Policy checks
-- Verification plugins
-- Reliability scoring
-- Markdown and JSON reports
-- Tamper-evident event chains
-- Secret redaction
-- MCP proxy evidence capture
-- Local sidecar mode for orchestrators
-
----
-
-## Quick demo
+The package keeps the stable CLI command:
 
 ```bash
-agentproof init
-agentproof start --agent "claude-code"
-agentproof run -- pytest
-agentproof stop --final-response "Fixed the issue and added a regression test."
-agentproof verify
-agentproof report --print
+agentproof --help
 ```
 
-Example report:
+It also installs the optional alias:
+
+```bash
+agentproof-recorder --help
+```
+
+## Example Report
 
 ```text
 AgentProof Recorder Report
@@ -111,737 +106,125 @@ Recommendation:
 Safe for human review. Do not auto-merge without checking the diff.
 ```
 
----
+A bad-agent example report is available at [report.md](report.md), with structured examples under [examples/](examples/).
 
-## Bad-agent E2E proof
+## Core Concepts
 
-AgentProof Recorder is designed to catch bad or careless agent behavior.
+**Task contract**
 
-The repository includes a bad-agent E2E report at:
+A YAML file that says what the agent is allowed to touch, which commands count as evidence, and what success means.
 
-```text
-report.md
-```
+**Evidence recorder**
 
-The bad agent attempted actions such as:
+Local run capture for file changes, command executions, final responses, universal events, and MCP/tool activity.
 
-- Forbidden file/path changes
-- Unrelated file changes
-- Secret-like file changes
-- Invalid data/artifact output
-- Forbidden or insecure network requests
-- Wrong browser final state
-- MCP forbidden tool calls
-- Secret arguments passed into MCP tools
+**Verification engine**
 
-Fresh E2E result:
+Checks the recorded run against the task contract and produces pass, partial pass, or fail results.
 
-```text
-Verdict: Fail
-Score: 55/100
-Risk: high
-Policy violations: 18
-Event chain: passed
-Secret redaction: passed
-MCP blocked: yes
-MCP response: JSON-RPC error -32001
-```
+**Trust report**
 
-This is the core promise:
+Markdown and JSON output that summarizes score, risk, policy violations, changed files, commands, and observed events.
 
-AgentProof Recorder does not just record agent work. It catches bad agent behavior.
+## What It Can Catch Today
 
----
+- forbidden path changes
+- unrelated file changes
+- secret-like file changes
+- dependency file changes
+- missing or failed test commands
+- bad data or artifact outputs
+- unsafe network/browser events
+- forbidden MCP tools
+- MCP targets that point at local/private networks
+- local event-log tampering
 
-## Core workflow
+## Local Sidecar And MCP Proxy
 
-AgentProof Recorder follows a simple loop:
-
-```text
-1. Define the task contract
-2. Start a run
-3. Use any coding agent or automation tool
-4. Record command/tool/browser/API evidence
-5. Stop the run
-6. Verify the work
-7. Generate a report
-```
-
-AgentProof Recorder stores local evidence under `.agentproof/`:
-
-```text
-.agentproof/
-  runs/
-  reports/
-  agentproof.sqlite3
-```
-
-Evidence can include:
-
-- Task contract
-- Run metadata
-- File-system snapshots
-- Git diff evidence
-- Wrapped command events
-- Universal events
-- MCP events
-- Verification results
-- Policy violations
-- Markdown report
-- JSON report
-
----
-
-## Installation
-
-### Local development install
-
-```bash
-python3 -m venv .venv
-. .venv/bin/activate
-pip install -e ".[dev]"
-```
-
-Run tests:
-
-```bash
-pytest
-```
-
-The main CLI command is still `agentproof`. The package also installs `agentproof-recorder` as an optional alias for the same CLI.
-
-Current automated test coverage includes negative cases for:
-
-- Forbidden paths
-- Unrelated changes
-- Secret-like files
-- Dependency changes
-- Unapproved commands
-- Missing tests
-- Bad CSV schema/count
-- Wrong artifact dimensions
-- Insecure network requests
-- Wrong browser final state
-- Event hash-chain tampering
-- Secret redaction
-- MCP forbidden tool blocking
-- MCP approval timeout
-- MCP observed policy violation scoring
-
----
-
-## Basic usage
-
-### 1. Initialize AgentProof Recorder
-
-```bash
-agentproof init
-```
-
-This creates the local `.agentproof/` workspace.
-
----
-
-### 2. Define or edit the task contract
-
-AgentProof Recorder uses a task contract to define what the agent is allowed to do and what success means.
-
-Example:
-
-```yaml
-task_id: AUTH-142
-title: Fix expired JWT refresh bug
-
-allowed_paths:
-  - src/auth/**
-  - tests/auth/**
-
-forbidden_paths:
-  - .env
-  - infra/**
-  - secrets/**
-
-allowed_commands:
-  - pytest
-  - pytest tests/auth
-
-forbidden_actions:
-  - access_secrets
-  - modify_database_schema
-  - install_new_package
-
-success_criteria:
-  - expired refresh token test added
-  - auth test suite passes
-  - no unrelated files changed
-  - no new dependency added
-
-verification:
-  tests:
-    - pytest tests/auth
-
-risk_level: medium
-human_approval_required: true
-```
-
----
-
-### 3. Start a run
-
-```bash
-agentproof start --agent "claude-code"
-```
-
-You can use any agent after the run starts.
-
-Examples:
-
-- Claude Code
-- Cursor
-- Codex-style terminal agents
-- Windsurf
-- Custom local agents
-- MCP-based agents
-- Human-assisted coding sessions
-
----
-
-### 4. Record command evidence
-
-Run verification-relevant commands through AgentProof Recorder:
-
-```bash
-agentproof run -- pytest
-agentproof run -- npm test
-agentproof run -- npm run lint
-agentproof run -- python scripts/check_output.py
-```
-
-AgentProof Recorder records:
-
-- Command
-- Exit code
-- Start/end time
-- Duration
-- stdout/stderr logs
-- Failure status
-
-There is also a small placeholder command:
-
-```bash
-agentproof shell
-```
-
-For now it points you back to `agentproof run -- <command>`. Full automatic shell interception is still on the roadmap.
-
----
-
-### 5. Record non-command events
-
-AgentProof Recorder can also record API, browser, tool, artifact, and LLM events.
-
-```bash
-agentproof event network.request --payload '{"url":"https://api.example.com/data","status_code":200}'
-```
-
-```bash
-agentproof event browser.navigate --payload '{"url":"https://example.com/done"}'
-```
-
-```bash
-agentproof event artifact.created --payload '{"path":"outputs/hero.png","width":1024,"height":768}'
-```
-
-Useful event types:
-
-```text
-process.exec
-network.request
-browser.navigate
-browser.dom_snapshot
-artifact.created
-tool.call
-llm.call
-human.approval
-mcp.tool.call.started
-mcp.tool.call.finished
-policy.decision
-approval.requested
-approval.approved
-approval.denied
-```
-
----
-
-### 6. Stop the run
-
-```bash
-agentproof stop --final-response "Fixed the issue and added a regression test."
-```
-
----
-
-### 7. Verify the run
-
-```bash
-agentproof verify
-```
-
-AgentProof Recorder checks the run against the task contract and recorded evidence.
-
----
-
-### 8. Generate report
-
-```bash
-agentproof report --print
-```
-
-Reports are available as Markdown and JSON.
-
----
-
-## Verification checks
-
-AgentProof Recorder currently verifies multiple work types.
-
-### Coding verification
-
-Checks include:
-
-- Allowed path changes
-- Forbidden path changes
-- Unrelated file changes
-- Secret-like file changes
-- Dependency/package changes
-- Test command evidence
-- Missing required verification commands
-- Failed command runs
-- Large diffs
-- Regression-test evidence
-
-### Script verification
-
-Checks include:
-
-- Required commands
-- Forbidden command patterns
-- Command duration limits
-- Failed command executions
-
-### Data verification
-
-Checks include:
-
-- Expected CSV/JSON files
-- Required columns
-- Minimum row count
-- Minimum item count
-- Schema-style evidence
-
-### Artifact verification
-
-Checks include:
-
-- Expected artifact existence
-- Minimum file size
-- Hash evidence
-- Image width/height
-- Video/image metadata from events
-
-### Network verification
-
-Checks include:
-
-- Allowed domains
-- Forbidden domains
-- HTTPS requirement
-- Maximum request count
-- Insecure network calls
-
-### Browser verification
-
-Checks include:
-
-- Required visited domains
-- Forbidden domains
-- Expected final URL
-- Required final page text
-- DOM snapshot evidence
-
-### MCP verification
-
-Checks include:
-
-- Allowed/forbidden MCP tools
-- Forbidden resource patterns
-- Approval-required tools
-- Tool-call timeout
-- Policy decision events
-- MCP error evidence
-- Secret redaction
-
----
-
-## Example policy sections
-
-### Network policy
-
-```yaml
-network_policy:
-  allowed_domains:
-    - api.example.com
-  forbidden_domains:
-    - prod.example.com
-  require_https: true
-  max_requests: 5
-```
-
-### Browser policy
-
-```yaml
-browser_policy:
-  required_visited_domains:
-    - example.com
-  forbidden_domains:
-    - admin.example.com
-  expected_final_url: https://example.com/done
-  required_final_text:
-    - Success
-```
-
-### Data artifact policy
-
-```yaml
-expected_data:
-  - path: data/results.csv
-    format: csv
-    required_columns:
-      - id
-      - score
-    min_rows: 1
-```
-
-### Image artifact policy
-
-```yaml
-expected_artifacts:
-  - path: outputs/hero.png
-    type: image
-    width: 1024
-    height: 768
-    min_size_bytes: 100
-```
-
-### Script policy
-
-```yaml
-script_policy:
-  required_commands:
-    - python scripts/fetch_data.py
-  forbidden_command_patterns:
-    - curl *prod*
-  max_command_duration_seconds: 30
-```
-
-### MCP policy
-
-```yaml
-mcp_policy:
-  allowed_tool_names:
-    - safe_tool
-  forbidden_tool_names:
-    - delete_all
-  allowed_domains:
-    - api.example.com
-  forbidden_domains:
-    - prod.example.com
-  forbidden_resource_patterns:
-    - secrets://*
-  approval_required_tools:
-    - pay_invoice
-  max_tool_call_duration_seconds: 30
-  approval_timeout_seconds: 300
-```
-
----
-
-## Local sidecar mode
-
-AgentProof Recorder can run as a local sidecar for a master agent, orchestrator, or external automation system.
+AgentProof Recorder can run as a local sidecar for a master agent or orchestrator:
 
 ```bash
 agentproof sidecar --host 127.0.0.1 --port 8797 --root .agentproof
 ```
 
-If you bind the sidecar beyond localhost, use an auth token:
+For sidecar APIs exposed beyond localhost, use an auth token:
 
 ```bash
 agentproof sidecar --host 0.0.0.0 --port 8797 --auth-token "$AGENTPROOF_TOKEN"
 ```
 
-The sidecar exposes local APIs for:
-
-```text
-GET  /health
-POST /v1/runs
-POST /v1/runs/{run_id}/events
-POST /v1/runs/{run_id}/stop
-POST /v1/runs/{run_id}/verify
-GET  /v1/runs/{run_id}
-GET  /v1/runs/{run_id}/report.md
-GET  /v1/runs/{run_id}/report.json
-GET  /v1/approvals/pending
-POST /v1/approvals/{approval_id}/approve
-POST /v1/approvals/{approval_id}/deny
-POST /v1/mcp/proxies
-POST /mcp/{proxy_id}
-```
-
-When `--auth-token` is set, every endpoint except `/health` requires:
-
-```text
-Authorization: Bearer <token>
-```
-
-Create a run:
+MCP HTTP proxy targets are validated to reduce SSRF/local-network forwarding risk. You can also restrict proxy registration to known hosts:
 
 ```bash
-curl -X POST http://127.0.0.1:8797/v1/runs \
-  -H 'content-type: application/json' \
-  -d '{
-    "agent": "master-agent",
-    "orchestrator": "custom-orchestrator",
-    "control_mode": "observe",
-    "task_contract": {
-      "task_id": "TASK-123",
-      "title": "Fetch data and update report",
-      "verification": {}
-    }
-  }'
+agentproof sidecar --auth-token test --allowed-mcp-target-host mcp.example.com
 ```
 
-Control modes:
+Read more in [docs/mcp-proxy.md](docs/mcp-proxy.md) and [docs/security-model.md](docs/security-model.md).
+
+## Documentation
+
+- [Quickstart](docs/quickstart.md)
+- [Task contracts](docs/task-contracts.md)
+- [Verification model](docs/verification-model.md)
+- [MCP proxy](docs/mcp-proxy.md)
+- [Security model](docs/security-model.md)
+- [Limitations](docs/limitations.md)
+- [Examples](docs/examples.md)
+
+## Project Status
+
+AgentProof Recorder is early alpha. The current focus is a useful local developer workflow:
+
+- record coding-agent runs
+- verify work against explicit task contracts
+- produce evidence reports for human review
+- support MCP proxy evidence capture for orchestrators
+
+See [ROADMAP.md](ROADMAP.md) for planned work.
+
+## Repository Layout
 
 ```text
-observe          Record events and policy violations
-block_critical   Block critical MCP policy violations
-approval_gates   Pause risky MCP actions until approval or timeout
+src/agentproof/        Python package. Import name stays agentproof.
+tests/                 Automated tests.
+docs/                  User and contributor documentation.
+examples/              Good, bad, and MCP-focused example runs.
+.github/               CI, issue templates, and PR template.
+.agentproof/           Local runtime evidence directory, created by the CLI.
 ```
 
----
-
-## MCP proxy
-
-AgentProof Recorder can sit between an agent and MCP tools to record evidence and enforce policy.
-
-For a local stdio MCP server:
-
-```bash
-agentproof mcp stdio --run-id run_123 --server-name filesystem -- python mcp_server.py
-```
-
-For a Streamable HTTP MCP server, register a proxy through the sidecar:
-
-```json
-{
-  "run_id": "run_123",
-  "server_name": "remote-tools",
-  "transport": "streamable_http",
-  "target_url": "https://tools.example.com/mcp",
-  "headers": {
-    "Authorization": "Bearer ..."
-  }
-}
-```
-
-MCP HTTP proxy targets are validated to reduce SSRF/local-network forwarding risk. Use `--allowed-mcp-target-host` to restrict proxy registration to known MCP hosts.
-
-AgentProof Recorder records MCP traffic as evidence:
-
-```text
-mcp.initialize
-mcp.tools.list
-mcp.tool.call.started
-mcp.tool.call.finished
-mcp.resources.list
-mcp.resource.read
-mcp.prompts.list
-mcp.prompt.get
-mcp.error
-policy.decision
-approval.requested
-approval.approved
-approval.denied
-```
-
-Sensitive fields are redacted before evidence is written.
-
-Redacted fields include:
-
-```text
-authorization
-api_key
-token
-password
-secret
-cookie
-```
-
----
-
-## Evidence integrity
-
-AgentProof Recorder writes raw evidence as append-only JSONL with event hash chaining.
-
-This helps detect event-log tampering during local verification.
-
-AgentProof Recorder also stores a SQLite index for easier queries over:
-
-- Runs
-- Events
-- Checks
-- Violations
-- Approvals
-- MCP proxies
-- Artifacts
-
-Important note:
-
-Local evidence is tamper-evident, not tamper-proof. For high-trust enterprise or marketplace use cases, remote notarization or signed external storage should be added.
-
----
-
-## What AgentProof Recorder is not
+## What AgentProof Recorder Is Not
 
 AgentProof Recorder is not:
 
-- A coding agent
-- An LLM framework
-- A replacement for tests
-- A replacement for code review
-- A security sandbox by itself
-- A guarantee that agent output is correct
-- An insurance product
+- a coding agent
+- a replacement for CI
+- a replacement for code review
+- a full sandbox
+- a hosted observability platform
+- an insurance product
+- a guarantee that agent output is correct
+- tamper-proof storage
 
-AgentProof Recorder is an evidence and verification layer.
-
-It helps teams decide whether agent work should be trusted, reviewed, blocked, rerun, or escalated.
-
----
-
-## Roadmap
-
-Near-term:
-
-- Cleaner demo workflows
-- `agentproof shell` for automatic command recording
-- GitHub Action for PR verification
-- Better report formatting
-- More adversarial test cases
-- VS Code extension prototype
-
-Mid-term:
-
-- Team dashboard
-- Agent comparison
-- Policy templates
-- CI/CD integrations
-- Cloud evidence sync
-- Signed run manifests
-- Remote evidence notarization
-
-Long-term:
-
-- Agent reliability history
-- Agent reputation scoring
-- Marketplace trust signals
-- Reward/settlement evidence
-- Insurance-readiness reports
-
----
-
-## Use cases
-
-AgentProof Recorder is useful for:
-
-- Developers using AI coding agents
-- Engineering teams reviewing agent-generated PRs
-- Security teams governing autonomous tools
-- AI-agent platforms that need execution evidence
-- Agent marketplaces that need trust signals
-- Enterprises adopting agentic workflows
-- Researchers studying agent reliability failures
-
----
-
-## Repository structure
-
-```text
-src/agentproof/     Core AgentProof Recorder package
-tests/              Automated test suite
-report.md           Example bad-agent report
-.agentproof/        Local evidence workspace, created at runtime
-```
-
----
+It is a local evidence and verification layer for agent work.
 
 ## Contributing
 
-AgentProof Recorder is early. Contributions are welcome, especially around:
+Contributions are welcome while the project is still small and sharp. Good first areas:
 
-- New verifier plugins
-- Better scoring logic
-- More adversarial test cases
-- Agent integration examples
-- GitHub/GitLab CI support
-- VS Code integration
+- more verifier checks
+- adversarial bad-agent examples
+- report readability
 - MCP policy coverage
-- Report design
+- GitHub/GitLab workflow integrations
+- docs and task-contract templates
 
-Run the test suite before opening a PR:
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 
-```bash
-pytest
-```
+## Security
 
----
-
-## Suggested GitHub topics
-
-To make this repository easier to discover, add topics such as:
-
-```text
-ai-agents
-agentic-ai
-ai-agent-security
-agent-observability
-agent-reliability
-llm-agents
-coding-agents
-mcp
-model-context-protocol
-ai-devtools
-agent-verification
-software-testing
-```
-
----
+Do not open a public issue for sensitive vulnerabilities. Read [SECURITY.md](SECURITY.md) for reporting guidance.
 
 ## License
 
-AgentProof Recorder is licensed under Apache-2.0. See [LICENSE](LICENSE).
-
----
-
-## Status
-
-AgentProof Recorder is an early-stage open-source project.
-
-The current focus is narrow:
-
-Make AI coding-agent work verifiable.
-
-The broader vision:
-
-Build the trust, verification, and risk layer for the agent economy.
+Apache-2.0. See [LICENSE](LICENSE).

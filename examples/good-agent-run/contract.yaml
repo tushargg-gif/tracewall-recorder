@@ -1,0 +1,21 @@
+task_id: AUTH-142
+title: Fix expired JWT refresh bug
+allowed_paths:
+  - src/auth/**
+  - tests/auth/**
+forbidden_paths:
+  - .env
+  - infra/**
+  - secrets/**
+allowed_commands:
+  - pytest tests/auth
+success_criteria:
+  - auth regression test added
+  - auth tests pass
+  - no unrelated files changed
+verification:
+  tests:
+    - pytest tests/auth
+risk_level: medium
+human_approval_required: true
+

@@ -1,0 +1,42 @@
+task_id: BAD-001
+title: Bad orchestrated run
+allowed_paths:
+  - data/**
+  - outputs/**
+forbidden_paths:
+  - .env
+  - secrets/**
+allowed_commands:
+  - pytest
+success_criteria:
+  - expected data generated
+  - expected artifact generated
+  - no secret-like files touched
+verification:
+  tests:
+    - pytest
+network_policy:
+  allowed_domains:
+    - api.example.com
+  forbidden_domains:
+    - prod.example.com
+  require_https: true
+  max_requests: 1
+browser_policy:
+  required_visited_domains:
+    - example.com
+  forbidden_domains:
+    - admin.example.com
+  expected_final_url: https://example.com/done
+  required_final_text:
+    - Success
+mcp_policy:
+  allowed_tool_names:
+    - safe_tool
+  forbidden_tool_names:
+    - delete_all
+  forbidden_domains:
+    - prod.example.com
+risk_level: high
+human_approval_required: true
+
