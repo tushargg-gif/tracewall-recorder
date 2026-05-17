@@ -10,6 +10,7 @@ from agentproof.plugins import (
     data_checks,
     network_checks,
     script_checks,
+    worker_scope_checks,
 )
 
 
@@ -208,6 +209,48 @@ def test_network_plugin_flags_forbidden_and_insecure_domains():
     assert checks["network_forbidden_domains"]["status"] == "failed"
     assert checks["network_https_required"]["status"] == "failed"
     assert checks["network_request_count"]["status"] == "warning"
+
+
+def test_network_plugin_passes_when_zero_requests_are_expected():
+    contract = TaskContract.from_mapping(
+        {
+            "network_policy": {
+                "require_https": True,
+                "max_requests": 0,
+            }
+        }
+    )
+    checks = lookup(network_checks(contract, []))
+    assert checks["network_events_recorded"]["status"] == "passed"
+    assert checks["network_https_required"]["status"] == "passed"
+    assert checks["network_request_count"]["status"] == "passed"
+
+
+def test_worker_scope_plugin_flags_actual_changes_outside_scope():
+    contract = TaskContract.from_mapping(
+        {
+            "forbidden_paths": ["package.json"],
+            "worker_scopes": {
+                "Rogue Agent": {
+                    "allowed_paths": ["docs/**"],
+                    "forbidden_paths": ["package.json"],
+                }
+            },
+        }
+    )
+    events = [
+        {
+            "event_type": "worker.completed",
+            "payload": {
+                "agent": "Rogue Agent",
+                "reported_files": [],
+                "actual_changed_files": ["package.json"],
+            },
+        }
+    ]
+    checks = lookup(worker_scope_checks(contract, events))
+    assert checks["worker_scope_rogue_agent"]["status"] == "failed"
+    assert checks["worker_forbidden_path_rogue_agent"]["status"] == "failed"
 
 
 def test_browser_plugin_validates_final_state():

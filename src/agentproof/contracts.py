@@ -58,6 +58,10 @@ DEFAULT_TASK: dict[str, Any] = {
         "max_tool_call_duration_seconds": None,
         "approval_timeout_seconds": 300,
     },
+    "policy_template": "",
+    "policy_version": 1,
+    "policy_versions": [],
+    "worker_scopes": {},
     "risk_level": "medium",
     "human_approval_required": True,
 }
@@ -80,6 +84,10 @@ class TaskContract:
     network_policy: dict[str, Any] = field(default_factory=dict)
     browser_policy: dict[str, Any] = field(default_factory=dict)
     mcp_policy: dict[str, Any] = field(default_factory=dict)
+    policy_template: str = ""
+    policy_version: int = 1
+    policy_versions: list[dict[str, Any]] = field(default_factory=list)
+    worker_scopes: dict[str, dict[str, Any]] = field(default_factory=dict)
     risk_level: str = "medium"
     human_approval_required: bool = True
 
@@ -107,6 +115,10 @@ class TaskContract:
             network_policy=_dict(data.get("network_policy")),
             browser_policy=_dict(data.get("browser_policy")),
             mcp_policy=_dict(data.get("mcp_policy")),
+            policy_template=str(data.get("policy_template") or ""),
+            policy_version=_int(data.get("policy_version"), default=1),
+            policy_versions=_dict_list(data.get("policy_versions")),
+            worker_scopes=_nested_dict(data.get("worker_scopes")),
             risk_level=str(data.get("risk_level") or "medium"),
             human_approval_required=bool(data.get("human_approval_required", True)),
         )
@@ -128,6 +140,10 @@ class TaskContract:
             "network_policy": self.network_policy,
             "browser_policy": self.browser_policy,
             "mcp_policy": self.mcp_policy,
+            "policy_template": self.policy_template,
+            "policy_version": self.policy_version,
+            "policy_versions": self.policy_versions,
+            "worker_scopes": self.worker_scopes,
             "risk_level": self.risk_level,
             "human_approval_required": self.human_approval_required,
         }
@@ -181,6 +197,16 @@ def _dict(value: Any) -> dict[str, Any]:
     return dict(value) if isinstance(value, dict) else {}
 
 
+def _nested_dict(value: Any) -> dict[str, dict[str, Any]]:
+    if not isinstance(value, dict):
+        return {}
+    output: dict[str, dict[str, Any]] = {}
+    for key, item in value.items():
+        if isinstance(item, dict):
+            output[str(key)] = dict(item)
+    return output
+
+
 def _dict_list(value: Any) -> list[dict[str, Any]]:
     if value is None:
         return []
@@ -189,6 +215,13 @@ def _dict_list(value: Any) -> list[dict[str, Any]]:
     if isinstance(value, list | tuple):
         return [dict(item) for item in value if isinstance(item, dict)]
     return []
+
+
+def _int(value: Any, default: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
 
 
 def normalize_path(path: str) -> str:

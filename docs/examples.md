@@ -42,6 +42,22 @@ MCP blocked: yes
 JSON-RPC error: -32001
 ```
 
+## Orchestrator Demo Test Harness
+
+Path: [../agent-demo](../agent-demo)
+
+Shows a master-agent workflow that selects a reusable policy template, amends policy automatically, registers scoped workers, records actual per-worker file changes, and catches a Rogue Agent that changes `package.json`.
+
+Expected result:
+
+```text
+Harness status: PASS
+AgentProof verdict: Fail
+Violating agent: Rogue Agent
+```
+
+Published result summary: [../agent-demo/RESULTS.md](../agent-demo/RESULTS.md)
+
 ## Root Bad-Agent Report
 
 The root [../report.md](../report.md) file is kept as a simple launch proof that README references can render on GitHub.

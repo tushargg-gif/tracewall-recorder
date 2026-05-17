@@ -9,7 +9,7 @@ import json
 import struct
 
 from agentproof.checks import check, sanitize_name
-from agentproof.contracts import TaskContract, match_command
+from agentproof.contracts import TaskContract, match_command, match_path
 from agentproof.paths import safe_project_path
 from agentproof.recorder import sha256_file
 
@@ -28,6 +28,7 @@ def run_verifier_plugins(
         *artifact_checks(contract, paths.project_root, events),
         *network_checks(contract, events),
         *browser_checks(contract, events),
+        *worker_scope_checks(contract, events),
         *mcp_checks(contract, events),
     ]
 
@@ -472,10 +473,16 @@ def network_checks(contract: TaskContract, events: list[dict[str, Any]]) -> list
     urls = [url for url in urls if url]
     domains = [hostname_from_url(url) for url in urls]
     domains = [domain for domain in domains if domain]
+    allowed_domains = string_list(policy.get("allowed_domains"))
+    forbidden_domains = string_list(policy.get("forbidden_domains"))
+    require_https = bool(policy.get("require_https"))
+    max_requests = policy.get("max_requests")
+    no_network_expected = max_requests is not None and int(max_requests) == 0
+    events_status = "passed" if network_events or no_network_expected else "warning"
     checks: list[dict[str, Any]] = [
         check(
             "network_events_recorded",
-            "passed" if network_events else "warning",
+            events_status,
             f"{len(network_events)} network URL event(s) recorded."
             if network_events
             else "No network URL events were recorded.",
@@ -484,11 +491,6 @@ def network_checks(contract: TaskContract, events: list[dict[str, Any]]) -> list
             category="network",
         )
     ]
-
-    allowed_domains = string_list(policy.get("allowed_domains"))
-    forbidden_domains = string_list(policy.get("forbidden_domains"))
-    require_https = bool(policy.get("require_https"))
-    max_requests = policy.get("max_requests")
 
     if allowed_domains:
         outside_allowed = [
@@ -559,6 +561,96 @@ def network_checks(contract: TaskContract, events: list[dict[str, Any]]) -> list
         )
 
     return checks
+
+
+def worker_scope_checks(contract: TaskContract, events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    worker_events = [
+        event
+        for event in events
+        if str(event.get("event_type") or "") == "worker.completed"
+    ]
+    if not worker_events and not contract.worker_scopes:
+        return []
+
+    checks: list[dict[str, Any]] = [
+        check(
+            "worker_events_recorded",
+            "passed" if worker_events else "warning",
+            f"{len(worker_events)} worker completion event(s) recorded."
+            if worker_events
+            else "No worker completion events were recorded.",
+            {"event_count": len(worker_events)},
+            severity="low",
+            category="worker",
+        )
+    ]
+
+    for index, event in enumerate(worker_events):
+        payload = event.get("payload") or {}
+        agent = str(payload.get("agent") or payload.get("worker") or f"worker_{index}")
+        actual_changed_files = string_list(payload.get("actual_changed_files"))
+        scope = dict(contract.worker_scopes.get(agent) or payload.get("scope") or {})
+        allowed_paths = string_list(scope.get("allowed_paths"))
+        forbidden_paths = unique(
+            [
+                *string_list(contract.forbidden_paths),
+                *string_list(scope.get("forbidden_paths")),
+            ]
+        )
+        out_of_scope = [
+            path
+            for path in actual_changed_files
+            if not path_allowed_by_worker(path, allowed_paths)
+        ]
+        forbidden = [
+            path
+            for path in actual_changed_files
+            if any(match_path(path, pattern) for pattern in forbidden_paths)
+        ]
+        agent_name = sanitize_name(agent)
+        checks.append(
+            check(
+                f"worker_scope_{agent_name}",
+                "failed" if out_of_scope else "passed",
+                f"Worker {agent} changed files outside its assigned scope."
+                if out_of_scope
+                else f"Worker {agent} stayed inside its assigned scope.",
+                {"agent": agent, "files": out_of_scope, "allowed_paths": allowed_paths},
+                policy_id="worker_scope_exceeded",
+                severity="high",
+                category="worker",
+            )
+        )
+        checks.append(
+            check(
+                f"worker_forbidden_path_{agent_name}",
+                "failed" if forbidden else "passed",
+                f"Worker {agent} modified forbidden paths."
+                if forbidden
+                else f"Worker {agent} did not modify forbidden paths.",
+                {"agent": agent, "files": forbidden, "forbidden_paths": forbidden_paths},
+                policy_id="worker_forbidden_path_change",
+                severity="critical",
+                category="worker",
+            )
+        )
+    return checks
+
+
+def path_allowed_by_worker(path: str, allowed_paths: list[str]) -> bool:
+    if not allowed_paths:
+        return False
+    return any(match_path(path, pattern) for pattern in allowed_paths)
+
+
+def unique(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    output: list[str] = []
+    for value in values:
+        if value not in seen:
+            seen.add(value)
+            output.append(value)
+    return output
 
 
 def browser_checks(contract: TaskContract, events: list[dict[str, Any]]) -> list[dict[str, Any]]:

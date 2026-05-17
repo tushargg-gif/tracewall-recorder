@@ -106,7 +106,7 @@ Recommendation:
 Safe for human review. Do not auto-merge without checking the diff.
 ```
 
-A bad-agent example report is available at [report.md](report.md), with structured examples under [examples/](examples/).
+A bad-agent example report is available at [report.md](report.md), with structured examples under [examples/](examples/). The local orchestrator demo publishes a current test-harness result at [agent-demo/RESULTS.md](agent-demo/RESULTS.md).
 
 ## Core Concepts
 
@@ -170,6 +170,7 @@ Read more in [docs/mcp-proxy.md](docs/mcp-proxy.md) and [docs/security-model.md]
 - [Security model](docs/security-model.md)
 - [Limitations](docs/limitations.md)
 - [Examples](docs/examples.md)
+- [Orchestrator demo results](agent-demo/RESULTS.md)
 
 ## Project Status
 
@@ -189,6 +190,7 @@ src/agentproof/        Python package. Import name stays agentproof.
 tests/                 Automated tests.
 docs/                  User and contributor documentation.
 examples/              Good, bad, and MCP-focused example runs.
+agent-demo/            Orchestrator demo test harness and publishable evidence.
 .github/               CI, issue templates, and PR template.
 .agentproof/           Local runtime evidence directory, created by the CLI.
 ```

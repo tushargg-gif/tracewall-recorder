@@ -85,7 +85,7 @@ def redact_secrets(value: Any) -> Any:
     if isinstance(value, dict):
         redacted: dict[str, Any] = {}
         for key, item in value.items():
-            if is_secret_key(str(key)):
+            if is_secret_key(str(key)) and not isinstance(item, bool):
                 redacted[key] = {"redacted": True, "sha256": value_hash(item)}
             else:
                 redacted[key] = redact_secrets(item)

@@ -139,7 +139,7 @@ def apply_generic_plugin_penalties(
         else:
             amount = int(6 * multiplier)
 
-        if category in {"network", "browser", "script", "mcp", "evidence"}:
+        if category in {"network", "browser", "script", "mcp", "evidence", "worker"}:
             dimensions["safety"] -= amount
             dimensions["containment"] -= max(3, amount // 2)
         elif category in {"data", "artifact"}:
