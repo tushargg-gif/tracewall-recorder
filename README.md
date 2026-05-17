@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <a href="assets/demo.mp4">Demo Video</a> &middot;
+  <a href="https://raw.githubusercontent.com/tushargg-gif/AgentProof-Recorder/main/assets/demo.mp4">Demo Video</a> &middot;
   <a href="docs/quickstart.md">Docs</a> &middot;
   <a href="docs/quickstart.md">Quickstart</a> &middot;
   <a href="docs/examples.md">Examples</a> &middot;
@@ -29,7 +29,13 @@ AgentProof Recorder is a tamper-evident evidence layer for AI agent work. It rec
 
 ## Demo: Rogue Agent Caught
 
-[Watch the demo video](assets/demo.mp4)
+<p align="center">
+  <a href="https://raw.githubusercontent.com/tushargg-gif/AgentProof-Recorder/main/assets/demo.mp4">
+    <img src="assets/demo.gif" alt="AgentProof Recorder demo: Rogue Agent Caught">
+  </a>
+</p>
+
+[Open the full MP4 demo](https://raw.githubusercontent.com/tushargg-gif/AgentProof-Recorder/main/assets/demo.mp4)
 
 In the demo, a Master Agent delegates documentation work to several worker agents. Most workers stay inside their assigned scopes.
 
