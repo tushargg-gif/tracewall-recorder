@@ -2,13 +2,15 @@
 
 This demo shows a local master-agent workflow using AgentProof Recorder as the evidence layer.
 
+Important: this is a scripted test harness, not a live LLM-agent run. The Master Agent and workers are deterministic Python classes so the demo is reproducible. AgentProof Recorder's evidence capture, event chain, file attribution, verification, and report generation are real.
+
 Run it from the repository root:
 
 ```bash
 python3 agent-demo/master_agent_demo.py --demo
 ```
 
-The master agent will:
+The scripted master agent will:
 
 1. read the project README, docs, and examples
 2. select the reusable `docs_only` policy template
@@ -32,7 +34,7 @@ agent-demo/generated/
 
 The demo uses a throwaway workspace under `agent-demo/.workspace/`. That folder is ignored by git.
 
-`scenario.json` contains the task, reusable policy template, and worker roster. The Master Agent uses AgentProof orchestration helpers to build and amend policy, then exits successfully only when the expected Rogue Agent violation is detected.
+`scenario.json` contains the task, reusable policy template, and worker roster. The scripted Master Agent uses AgentProof orchestration helpers to build and amend policy, then exits successfully only when the expected Rogue Agent violation is detected.
 
 The latest publishable result summary is in [RESULTS.md](RESULTS.md).
 

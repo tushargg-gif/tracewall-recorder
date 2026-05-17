@@ -23,9 +23,11 @@ python3 agent-demo/master_agent_demo.py --demo
 
 "This is AgentProof Recorder. It gives a master agent an evidence layer while it delegates work to smaller agents."
 
+"For this recording, the agents are scripted so the run is reproducible. AgentProof's recording and verification are the real system under test."
+
 **0:15-0:35**
 
-"The Master Agent reads the local repo context, selects a docs-only policy, and starts an AgentProof run."
+"The scripted Master Agent reads the local repo context, selects a docs-only policy template, and starts an AgentProof run."
 
 **0:35-0:55**
 
@@ -45,7 +47,7 @@ python3 agent-demo/master_agent_demo.py --demo
 
 ## Key Moments To Zoom In On
 
-- Step 2: `docs_only` policy selection.
+- Step 2: scripted `docs_only` policy template selection.
 - Step 4: worker scopes.
 - Step 6: Rogue Agent reports no files but changes `package.json`.
 - Step 8: final summary with verdict, score, risk, violating agent, and evidence files.

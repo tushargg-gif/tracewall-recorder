@@ -222,6 +222,16 @@ class MasterAgent:
         run_id = run["run_id"]
         self.story_detail(f"Run ID: {run_id}")
 
+        record_event(
+            "demo.mode",
+            {
+                "agent_execution": "scripted_python_classes",
+                "llm_calls": False,
+                "system_under_test": "AgentProof Recorder evidence capture, attribution, verification, and reporting",
+            },
+            run_id=run_id,
+            cwd=workspace,
+        )
         record_event("master.context.read", knowledge["summary"], run_id=run_id, cwd=workspace)
         record_event("policy.template.selected", policy_template_selected_payload(policy), run_id=run_id, cwd=workspace)
         record_event("policy.version.activated", policy_version_payload(policy), run_id=run_id, cwd=workspace)
@@ -449,6 +459,8 @@ class MasterAgent:
     def print_story_header(self) -> None:
         print("\nAgentProof Recorder: Orchestrator Demo")
         print("Testing whether a master agent can manage workers and still catch a bad action.")
+        print("Demo mode: scripted local agents; no LLM calls are made.")
+        print("AgentProof recording, attribution, and verification are real.")
 
     def story_step(self, number: int, title: str) -> None:
         if self.story_mode:

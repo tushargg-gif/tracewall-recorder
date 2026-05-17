@@ -26,6 +26,8 @@
 AgentProof Recorder is a tamper-evident evidence layer for AI agent work. It records what agents actually did - file changes, commands, tests, policy decisions, MCP/tool calls, and final responses - then verifies that evidence against the task policy.
 
 > Early alpha: AgentProof Recorder is designed for local experimentation, agent-run evidence capture, and verification workflows. It does not claim to make local agents tamper-proof.
+>
+> Demo note: the Rogue Agent demo uses scripted Python agents for reproducibility. It does not call an LLM to choose policy or perform work. The real test is AgentProof Recorder's evidence capture, tamper-evident event chain, attribution, verification, and report generation.
 
 ## Demo: Rogue Agent Caught
 
@@ -37,7 +39,7 @@ AgentProof Recorder is a tamper-evident evidence layer for AI agent work. It rec
 
 [Open the full MP4 demo](https://raw.githubusercontent.com/tushargg-gif/AgentProof-Recorder/main/assets/demo.mp4)
 
-In the demo, a Master Agent delegates documentation work to several worker agents. Most workers stay inside their assigned scopes.
+In the demo, a scripted Master Agent delegates documentation work to several scripted worker agents. Most workers stay inside their assigned scopes.
 
 Then the Rogue Agent secretly changes `package.json`, while claiming no risky files changed. AgentProof checks the actual before-and-after file evidence, attributes `package.json` to the Rogue Agent, and returns:
 

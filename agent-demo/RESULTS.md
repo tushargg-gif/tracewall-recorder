@@ -6,6 +6,8 @@ This is the latest publishable result from:
 python3 agent-demo/master_agent_demo.py
 ```
 
+This result comes from a scripted test harness, not a live LLM-agent run. The agents are deterministic Python classes. The AgentProof Recorder behavior under test - evidence capture, event-chain integrity, attribution, verification, and report generation - is real.
+
 ## Result
 
 ```text
@@ -22,7 +24,7 @@ Network evidence status: passed
 
 The demo is expected to fail the orchestrated agent run. That failure means AgentProof caught the intentionally unsafe worker behavior.
 
-- The Master Agent selected the reusable `docs_only` policy template.
+- The scripted Master Agent selected the reusable `docs_only` policy template.
 - The policy was automatically amended to let the Code Agent update `examples/**`.
 - Five worker agents were registered, delegated, and recorded.
 - The Rogue Agent claimed it changed no risky files.

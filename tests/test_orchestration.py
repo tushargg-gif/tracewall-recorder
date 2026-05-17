@@ -25,6 +25,9 @@ def test_docs_only_policy_template_creates_contract_and_worker_scopes():
     contract = policy["task_contract"]
 
     assert contract["policy_template"] == "docs_only"
+    assert contract["policy_source"] == "template_registry"
+    assert contract["llm_generated_policy"] is False
+    assert policy["llm_generated_policy"] is False
     assert contract["policy_version"] == 1
     assert contract["allowed_paths"] == ["README.md", "docs/**"]
     assert "package.json" in contract["forbidden_paths"]

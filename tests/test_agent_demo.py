@@ -23,6 +23,7 @@ def test_master_agent_demo_catches_rogue_worker():
     )
 
     assert result.returncode == 0, result.stdout + result.stderr
+    assert "Demo mode: scripted local agents; no LLM calls are made." in result.stdout
     assert "Step 1: Master Agent reads repo context" in result.stdout
     assert "Step 6: Rogue Agent secretly changes package.json" in result.stdout
     assert "Step 8: Final decision: FAIL" in result.stdout
@@ -57,6 +58,13 @@ def test_master_agent_demo_catches_rogue_worker():
         for line in events_path.read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
+    demo_mode_events = [
+        event
+        for event in events
+        if event.get("event_type") == "demo.mode"
+    ]
+    assert demo_mode_events
+    assert demo_mode_events[0]["payload"]["llm_calls"] is False
     rogue_events = [
         event
         for event in events

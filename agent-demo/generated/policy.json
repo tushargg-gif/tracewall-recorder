@@ -1,6 +1,8 @@
 {
   "created_by": "Master Agent",
+  "llm_generated_policy": false,
   "policy_id": "DEMO-DOCS-001",
+  "policy_source": "template_registry",
   "task": "Update AgentProof Recorder docs/README for a demo.",
   "task_contract": {
     "allowed_commands": [
@@ -45,6 +47,7 @@
       "yarn.lock"
     ],
     "human_approval_required": true,
+    "llm_generated_policy": false,
     "mcp_policy": {
       "forbidden_tool_names": [
         "delete_all"
@@ -56,6 +59,7 @@
       "max_requests": 0,
       "require_https": true
     },
+    "policy_source": "template_registry",
     "policy_template": "docs_only",
     "policy_version": 2,
     "policy_versions": [

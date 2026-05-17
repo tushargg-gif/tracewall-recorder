@@ -50,6 +50,7 @@
         "yarn.lock"
       ],
       "human_approval_required": true,
+      "llm_generated_policy": false,
       "mcp_policy": {
         "forbidden_tool_names": [
           "delete_all"
@@ -61,6 +62,7 @@
         "max_requests": 0,
         "require_https": true
       },
+      "policy_source": "template_registry",
       "policy_template": "docs_only",
       "policy_version": 2,
       "policy_versions": [
@@ -190,13 +192,13 @@
     },
     "control_mode": "observe",
     "duration_seconds": 1,
-    "end_time": "2026-05-17T21:15:50+05:30",
+    "end_time": "2026-05-17T22:02:08+05:30",
     "final_response": "Delegation finished. Reading AgentProof report before final decision.",
     "git": {
       "available": true,
       "branch": "main",
       "dirty": true,
-      "head": "4a84f5cae04ec304d6670bb206b96db6946a3583",
+      "head": "3fe48576a73fbd12e1b31d8fee2a5256ce69ac8f",
       "root": "agent-demo/.workspace",
       "status": [
         " M README.md",
@@ -211,10 +213,10 @@
     "project_root": "agent-demo/.workspace",
     "risk": "high",
     "risk_level": "medium",
-    "run_dir": "agent-demo/.workspace/.agentproof/runs/run_20260517_211549_2594f6",
-    "run_id": "run_20260517_211549_2594f6",
+    "run_dir": "agent-demo/.workspace/.agentproof/runs/run_20260517_220207_6cdf67",
+    "run_id": "run_20260517_220207_6cdf67",
     "score": 70,
-    "start_time": "2026-05-17T21:15:49+05:30",
+    "start_time": "2026-05-17T22:02:07+05:30",
     "status": "verified_fail",
     "task_id": "DEMO-DOCS-001",
     "task_title": "Update AgentProof Recorder docs/README for a demo.",
@@ -362,8 +364,8 @@
         "action_taken": "flagged",
         "category": "evidence",
         "evidence": {
-          "event_count": 30,
-          "last_event_hash": "d77458836de534204789219ff03e188c15cba892aa49727226c595cbc963565f",
+          "event_count": 31,
+          "last_event_hash": "38d785898fbcdb355c6b5e014aa079bc5505581b131990363724aeb04ecaefe6",
           "valid": true
         },
         "message": "Event hash chain is valid.",
@@ -697,11 +699,11 @@
           "demo_test_probe.py"
         ],
         "command": "python3 demo_test_probe.py",
-        "command_id": "cmd_1779032749_b0469a",
-        "duration_seconds": 0.019,
+        "command_id": "cmd_1779035528_9dd3c8",
+        "duration_seconds": 0.02,
         "exit_code": 0,
-        "stderr_path": ".agentproof/runs/run_20260517_211549_2594f6/command_outputs/cmd_1779032749_b0469a.stderr.log",
-        "stdout_path": ".agentproof/runs/run_20260517_211549_2594f6/command_outputs/cmd_1779032749_b0469a.stdout.log"
+        "stderr_path": ".agentproof/runs/run_20260517_220207_6cdf67/command_outputs/cmd_1779035528_9dd3c8.stderr.log",
+        "stdout_path": ".agentproof/runs/run_20260517_220207_6cdf67/command_outputs/cmd_1779035528_9dd3c8.stdout.log"
       }
     ],
     "dimensions": {
@@ -717,6 +719,7 @@
       "agent.output": 5,
       "command_finished": 1,
       "command_started": 1,
+      "demo.mode": 1,
       "master.context.read": 1,
       "policy.amendment.applied": 1,
       "policy.template.selected": 1,
@@ -816,10 +819,10 @@
       }
     ],
     "risk": "high",
-    "run_id": "run_20260517_211549_2594f6",
+    "run_id": "run_20260517_220207_6cdf67",
     "score": 70,
     "task_id": "DEMO-DOCS-001",
     "verdict": "Fail",
-    "verification_id": "ver_run_20260517_211549_2594f6"
+    "verification_id": "ver_run_20260517_220207_6cdf67"
   }
 }

@@ -79,6 +79,8 @@ def build_policy_from_template(
         },
         "mcp_policy": {"forbidden_tool_names": ["delete_all"]},
         "policy_template": template_id,
+        "policy_source": "template_registry",
+        "llm_generated_policy": False,
         "policy_version": 1,
         "policy_versions": [
             {
@@ -95,6 +97,8 @@ def build_policy_from_template(
         "policy_id": task_id,
         "created_by": "Master Agent",
         "template_id": template_id,
+        "policy_source": "template_registry",
+        "llm_generated_policy": False,
         "task": title,
         "task_contract": contract,
     }
