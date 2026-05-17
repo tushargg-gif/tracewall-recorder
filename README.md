@@ -1,9 +1,9 @@
 # AgentProof Recorder
 
-<p align="center"><strong>The black-box recorder for AI coding agents.</strong></p>
+<p align="center"><strong>Tamper-evident evidence for AI agent work.</strong></p>
 
 <p align="center">
-  AI coding agents say they are done. AgentProof Recorder checks the evidence.
+  AgentProof Recorder verifies whether agents followed policy, even when an agent claims it did.
 </p>
 
 <p align="center">
@@ -14,6 +14,7 @@
 </p>
 
 <p align="center">
+  <a href="assets/demo.mp4">Demo Video</a> &middot;
   <a href="docs/quickstart.md">Docs</a> &middot;
   <a href="docs/quickstart.md">Quickstart</a> &middot;
   <a href="docs/examples.md">Examples</a> &middot;
@@ -22,11 +23,37 @@
   <a href="CONTRIBUTING.md">Contributing</a>
 </p>
 
-AgentProof Recorder is a local evidence recorder and verification layer for AI coding agents. It captures what an agent actually did during a task - file changes, commands, tests, final response, policy violations, MCP/tool calls, and tamper-evident event chains - then generates a trust report before code review or merge.
+AgentProof Recorder is a tamper-evident evidence layer for AI agent work. It records what agents actually did - file changes, commands, tests, policy decisions, MCP/tool calls, and final responses - then verifies that evidence against the task policy.
 
 > Early alpha: AgentProof Recorder is designed for local experimentation, agent-run evidence capture, and verification workflows. It does not claim to make local agents tamper-proof.
 
-## Why This Exists
+## Demo: Rogue Agent Caught
+
+[Watch the demo video](assets/demo.mp4)
+
+In the demo, a Master Agent delegates documentation work to several worker agents. Most workers stay inside their assigned scopes.
+
+Then the Rogue Agent secretly changes `package.json`, while claiming no risky files changed. AgentProof checks the actual before-and-after file evidence, attributes `package.json` to the Rogue Agent, and returns:
+
+```text
+Final verdict: FAIL
+Violating agent: Rogue Agent
+Changed file: package.json
+```
+
+Run the same local demo:
+
+```bash
+python3 agent-demo/master_agent_demo.py --demo
+```
+
+Generated evidence:
+
+- [agent-demo/generated/policy.json](agent-demo/generated/policy.json)
+- [agent-demo/generated/events.jsonl](agent-demo/generated/events.jsonl)
+- [agent-demo/generated/agentproof_report.json](agent-demo/generated/agentproof_report.json)
+
+## Why This Matters
 
 AI coding agents can claim success while:
 
@@ -37,9 +64,9 @@ AI coding agents can claim success while:
 - making unsafe tool calls
 - producing output without evidence
 
-The bottleneck is moving from writing code to verifying agent work.
+The bottleneck is moving from writing code to verifying agent work. AgentProof Recorder gives reviewers local evidence before code moves into review or merge.
 
-AgentProof Recorder is built for that handoff. It does not replace CI, tests, or code review. It gives reviewers a local evidence trail before code moves into review or merge.
+It does not replace CI, tests, or code review. It makes the handoff easier to inspect.
 
 ## What AgentProof Recorder Does
 

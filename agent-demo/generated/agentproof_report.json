@@ -190,13 +190,13 @@
     },
     "control_mode": "observe",
     "duration_seconds": 1,
-    "end_time": "2026-05-17T18:12:07+05:30",
+    "end_time": "2026-05-17T21:15:50+05:30",
     "final_response": "Delegation finished. Reading AgentProof report before final decision.",
     "git": {
       "available": true,
       "branch": "main",
       "dirty": true,
-      "head": "e9369a97912ff73d7bd18642fc0b1db048775720",
+      "head": "4a84f5cae04ec304d6670bb206b96db6946a3583",
       "root": "agent-demo/.workspace",
       "status": [
         " M README.md",
@@ -211,10 +211,10 @@
     "project_root": "agent-demo/.workspace",
     "risk": "high",
     "risk_level": "medium",
-    "run_dir": "agent-demo/.workspace/.agentproof/runs/run_20260517_181206_95e5a8",
-    "run_id": "run_20260517_181206_95e5a8",
+    "run_dir": "agent-demo/.workspace/.agentproof/runs/run_20260517_211549_2594f6",
+    "run_id": "run_20260517_211549_2594f6",
     "score": 70,
-    "start_time": "2026-05-17T18:12:06+05:30",
+    "start_time": "2026-05-17T21:15:49+05:30",
     "status": "verified_fail",
     "task_id": "DEMO-DOCS-001",
     "task_title": "Update AgentProof Recorder docs/README for a demo.",
@@ -363,7 +363,7 @@
         "category": "evidence",
         "evidence": {
           "event_count": 30,
-          "last_event_hash": "b3372d96d971bbe1ca789148e2acc5f2ade3aea319f67f3b68792ef2facd96e6",
+          "last_event_hash": "d77458836de534204789219ff03e188c15cba892aa49727226c595cbc963565f",
           "valid": true
         },
         "message": "Event hash chain is valid.",
@@ -697,11 +697,11 @@
           "demo_test_probe.py"
         ],
         "command": "python3 demo_test_probe.py",
-        "command_id": "cmd_1779021726_fbd9cc",
-        "duration_seconds": 0.023,
+        "command_id": "cmd_1779032749_b0469a",
+        "duration_seconds": 0.019,
         "exit_code": 0,
-        "stderr_path": ".agentproof/runs/run_20260517_181206_95e5a8/command_outputs/cmd_1779021726_fbd9cc.stderr.log",
-        "stdout_path": ".agentproof/runs/run_20260517_181206_95e5a8/command_outputs/cmd_1779021726_fbd9cc.stdout.log"
+        "stderr_path": ".agentproof/runs/run_20260517_211549_2594f6/command_outputs/cmd_1779032749_b0469a.stderr.log",
+        "stdout_path": ".agentproof/runs/run_20260517_211549_2594f6/command_outputs/cmd_1779032749_b0469a.stdout.log"
       }
     ],
     "dimensions": {
@@ -816,10 +816,10 @@
       }
     ],
     "risk": "high",
-    "run_id": "run_20260517_181206_95e5a8",
+    "run_id": "run_20260517_211549_2594f6",
     "score": 70,
     "task_id": "DEMO-DOCS-001",
     "verdict": "Fail",
-    "verification_id": "ver_run_20260517_181206_95e5a8"
+    "verification_id": "ver_run_20260517_211549_2594f6"
   }
 }

@@ -23,9 +23,13 @@ def test_master_agent_demo_catches_rogue_worker():
     )
 
     assert result.returncode == 0, result.stdout + result.stderr
+    assert "Step 1: Master Agent reads repo context" in result.stdout
+    assert "Step 6: Rogue Agent secretly changes package.json" in result.stdout
+    assert "Step 8: Final decision: FAIL" in result.stdout
     assert "Harness status: PASS" in result.stdout
-    assert "AgentProof verdict: Fail" in result.stdout
+    assert "Verdict: Fail" in result.stdout
     assert "Violating agent: Rogue Agent" in result.stdout
+    assert "agent-demo/generated/agentproof_report.json" in result.stdout
 
     generated = ROOT / "agent-demo" / "generated"
     policy_path = generated / "policy.json"

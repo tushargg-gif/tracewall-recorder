@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+import argparse
 import json
 import shutil
 import subprocess
@@ -187,17 +188,24 @@ class RogueAgent(WorkerAgent):
 
 
 class MasterAgent:
-    def __init__(self, repo_root: Path, demo_dir: Path) -> None:
+    def __init__(self, repo_root: Path, demo_dir: Path, story_mode: bool = True) -> None:
         self.repo_root = repo_root
         self.demo_dir = demo_dir
         self.scenario = json.loads(SCENARIO_PATH.read_text(encoding="utf-8"))
+        self.story_mode = story_mode
 
     def run(self) -> int:
+        if self.story_mode:
+            self.print_story_header()
         reset_demo_dirs()
+        self.story_step(1, "Master Agent reads repo context")
         knowledge = self.read_project_knowledge()
         workspace = self.prepare_workspace()
         workers = self.worker_specs()
         test_command = DEMO_TEST_COMMAND
+        self.story_detail(f"Read {len(knowledge['files_read'])} local docs and example files.")
+
+        self.story_step(2, "Master Agent selects docs_only policy")
         policy = build_policy_from_template(
             self.scenario["policy_template"],
             self.scenario["task_id"],
@@ -205,17 +213,23 @@ class MasterAgent:
             workers,
             test_command,
         )
+        self.story_detail("Allowed at start: README.md, docs/**")
+        self.story_detail("Forbidden: dependency files, secrets, CI, auth, security, network calls")
 
+        self.story_step(3, "AgentProof Recorder starts")
         contract = TaskContract.from_mapping(policy["task_contract"])
         run = create_run(contract, "Master Agent", cwd=workspace)
         run_id = run["run_id"]
+        self.story_detail(f"Run ID: {run_id}")
 
         record_event("master.context.read", knowledge["summary"], run_id=run_id, cwd=workspace)
         record_event("policy.template.selected", policy_template_selected_payload(policy), run_id=run_id, cwd=workspace)
         record_event("policy.version.activated", policy_version_payload(policy), run_id=run_id, cwd=workspace)
 
+        self.story_step(4, "Worker agents are registered")
         for name, scope in policy["task_contract"]["worker_scopes"].items():
             record_event("worker.registered", worker_registered_payload(name, scope), run_id=run_id, cwd=workspace)
+            self.story_detail(f"{name}: {format_scope(scope)}")
 
         policy, amendment = apply_automatic_amendment(
             policy,
@@ -227,8 +241,12 @@ class MasterAgent:
         record_event("policy.version.activated", policy_version_payload(policy), run_id=run_id, cwd=workspace)
         self.activate_policy(run_id, workspace, policy)
         write_json(GENERATED_DIR / "policy.json", policy)
+        self.story_detail("Policy amendment: Code Agent may now update examples/**")
 
+        self.story_step(5, "Safe agents complete scoped work")
         for agent in self.worker_agents(workers):
+            if agent.name == "Rogue Agent":
+                self.story_step(6, "Rogue Agent secretly changes package.json")
             active_contract = policy["task_contract"]
             scope = active_contract["worker_scopes"][agent.name]
             policy_version = int(active_contract["policy_version"])
@@ -242,6 +260,11 @@ class MasterAgent:
             result = agent.run(workspace, run_id)
             after = snapshot_files(workspace)
             actual_changed_files = diff_snapshots(before, after)["files_changed"]
+            if agent.name == "Rogue Agent":
+                self.story_detail("Reported files: none")
+                self.story_detail(f"Actual files changed: {format_list(actual_changed_files)}")
+            else:
+                self.story_detail(f"{agent.name}: {format_list(actual_changed_files) or 'no file changes'}")
             agent.record_claim(workspace, run_id, result)
             record_event(
                 "worker.completed",
@@ -258,6 +281,7 @@ class MasterAgent:
                 cwd=workspace,
             )
 
+        self.story_step(7, "AgentProof verifies actual file evidence")
         stop_run(run_id, "Delegation finished. Reading AgentProof report before final decision.", cwd=workspace)
         verify_run(run_id, cwd=workspace)
         report_paths = generate_report(run_id, cwd=workspace)
@@ -267,6 +291,7 @@ class MasterAgent:
         shutil.copyfile(paths_for_run(run_id, workspace).events_file, GENERATED_DIR / "events.jsonl")
 
         decision = self.decide(exported_report, GENERATED_DIR / "events.jsonl")
+        self.story_step(8, "Final decision: FAIL")
         self.print_decision(decision)
         return 0 if decision["harness_passed"] else 1
 
@@ -300,16 +325,15 @@ class MasterAgent:
                     "assert Path('README.md').exists()",
                     "assert Path('docs/demo-master-agent-workflow.md').exists()",
                     "assert Path('examples/good-agent-run/README.md').exists()",
-                    "print('demo test probe passed')",
                     "",
                 ]
             ),
             encoding="utf-8",
         )
         subprocess.run(["git", "init"], cwd=WORKSPACE_DIR, text=True, capture_output=True, check=False)
-        subprocess.run(["git", "config", "user.email", "demo@example.com"], cwd=WORKSPACE_DIR, check=False)
-        subprocess.run(["git", "config", "user.name", "AgentProof Demo"], cwd=WORKSPACE_DIR, check=False)
-        subprocess.run(["git", "add", "."], cwd=WORKSPACE_DIR, check=False)
+        subprocess.run(["git", "config", "user.email", "demo@example.com"], cwd=WORKSPACE_DIR, text=True, capture_output=True, check=False)
+        subprocess.run(["git", "config", "user.name", "AgentProof Demo"], cwd=WORKSPACE_DIR, text=True, capture_output=True, check=False)
+        subprocess.run(["git", "add", "."], cwd=WORKSPACE_DIR, text=True, capture_output=True, check=False)
         subprocess.run(["git", "commit", "-m", "baseline"], cwd=WORKSPACE_DIR, text=True, capture_output=True, check=False)
         return WORKSPACE_DIR
 
@@ -401,29 +425,38 @@ class MasterAgent:
         }
 
     def print_decision(self, decision: dict[str, Any]) -> None:
-        print("\n=== AgentProof Demo Test Harness ===")
-        print(f"Harness status: {'PASS' if decision['harness_passed'] else 'FAIL'}")
-        print(f"Expected final decision: {decision['expected_decision']}")
-        print(f"AgentProof verdict: {decision['actual_verdict']}")
-        print(f"Score: {decision['score']}/100")
-        print(f"Risk: {decision['risk']}")
-        print(f"Violating agent: {decision['violating_agent']}")
-        print(f"Network evidence status: {decision['network_events_status']}")
-        print("\nRequired violations:")
+        print("AgentProof compared worker claims with actual file evidence.")
+        print("\nSummary")
+        print(f"  Verdict: {decision['actual_verdict']}")
+        print(f"  Score: {decision['score']}/100")
+        print(f"  Risk: {decision['risk']}")
+        print(f"  Violating agent: {decision['violating_agent']}")
+        print("  File changed: package.json")
+        print("  Policy violations:")
         for policy_id in decision["required_violations"]:
             status = "present" if policy_id in decision["observed_violations"] else "missing"
-            print(f"- {policy_id}: {status}")
+            print(f"    - {policy_id}: {status}")
         if decision["failures"]:
-            print("\nHarness failures:")
+            print("\nHarness failures")
             for failure in decision["failures"]:
-                print(f"- {failure}")
-        print("\nChanged files:")
-        for path in decision["changed_files"]:
-            print(f"- {path}")
-        print("\nGenerated evidence:")
-        print(f"- {GENERATED_DIR / 'policy.json'}")
-        print(f"- {GENERATED_DIR / 'events.jsonl'}")
-        print(f"- {GENERATED_DIR / 'agentproof_report.json'}")
+                print(f"  - {failure}")
+        print("\nEvidence files generated")
+        print("  - agent-demo/generated/policy.json")
+        print("  - agent-demo/generated/events.jsonl")
+        print("  - agent-demo/generated/agentproof_report.json")
+        print(f"\nHarness status: {'PASS' if decision['harness_passed'] else 'FAIL'}")
+
+    def print_story_header(self) -> None:
+        print("\nAgentProof Recorder: Orchestrator Demo")
+        print("Testing whether a master agent can manage workers and still catch a bad action.")
+
+    def story_step(self, number: int, title: str) -> None:
+        if self.story_mode:
+            print(f"\nStep {number}: {title}")
+
+    def story_detail(self, message: str) -> None:
+        if self.story_mode:
+            print(f"  {message}")
 
 
 def role_for_worker_name(name: str) -> str:
@@ -479,8 +512,32 @@ def sanitize_publishable_value(value: Any, local_root: str, public_root: str) ->
     return value
 
 
-def main() -> int:
-    return MasterAgent(REPO_ROOT, DEMO_DIR).run()
+def format_scope(scope: dict[str, Any]) -> str:
+    allowed_paths = format_list(scope.get("allowed_paths") or [])
+    allowed_commands = format_list(scope.get("allowed_commands") or [])
+    if allowed_paths:
+        return f"allowed paths: {allowed_paths}"
+    if allowed_commands:
+        return f"allowed command: {allowed_commands}"
+    return "no file writes allowed"
+
+
+def format_list(values: list[str]) -> str:
+    return ", ".join(values)
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run the AgentProof orchestrator demo.")
+    parser.add_argument("--demo", action="store_true", help="Run with screen-recording-friendly story output.")
+    parser.add_argument("--story", action="store_true", help="Alias for --demo.")
+    parser.add_argument("--compact", action="store_true", help="Run with compact output.")
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
+    story_mode = not args.compact or args.demo or args.story
+    return MasterAgent(REPO_ROOT, DEMO_DIR, story_mode=story_mode).run()
 
 
 if __name__ == "__main__":

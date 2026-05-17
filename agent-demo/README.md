@@ -5,7 +5,7 @@ This demo shows a local master-agent workflow using AgentProof Recorder as the e
 Run it from the repository root:
 
 ```bash
-python3 agent-demo/master_agent_demo.py
+python3 agent-demo/master_agent_demo.py --demo
 ```
 
 The master agent will:
@@ -35,3 +35,5 @@ The demo uses a throwaway workspace under `agent-demo/.workspace/`. That folder 
 `scenario.json` contains the task, reusable policy template, and worker roster. The Master Agent uses AgentProof orchestration helpers to build and amend policy, then exits successfully only when the expected Rogue Agent violation is detected.
 
 The latest publishable result summary is in [RESULTS.md](RESULTS.md).
+
+For a two-minute screen recording outline, use [DEMO_SCRIPT.md](DEMO_SCRIPT.md).
