@@ -34,8 +34,26 @@ def build_parser() -> argparse.ArgumentParser:
     start = subcommands.add_parser("start", help="Start recording an agent run.")
     start.add_argument("--task-file", default=".agentproof/task.yml", help="Task contract path.")
     start.add_argument("--agent", default="unknown", help="Agent name or provider.")
+    start.add_argument(
+        "--enforce",
+        action="store_true",
+        help="Block (not just flag) reads/writes/deletes of sensitive files for recorded commands.",
+    )
 
     run = subcommands.add_parser("run", help="Run and record a command.")
+    run.add_argument(
+        "--enforce",
+        dest="enforce",
+        action="store_true",
+        default=None,
+        help="Force sandbox enforcement for this command (overrides run mode).",
+    )
+    run.add_argument(
+        "--no-enforce",
+        dest="enforce",
+        action="store_false",
+        help="Disable enforcement for this command (overrides run mode).",
+    )
     run.add_argument("wrapped_command", nargs=argparse.REMAINDER)
 
     event = subcommands.add_parser("event", help="Record a universal agent event.")
@@ -124,9 +142,19 @@ def cmd_init(args: argparse.Namespace) -> int:
 
 def cmd_start(args: argparse.Namespace) -> int:
     contract = load_contract(Path(args.task_file))
-    run = create_run(contract, args.agent, cwd=Path.cwd())
+    run = create_run(contract, args.agent, cwd=Path.cwd(), enforce=args.enforce)
     print(f"Started AgentProof Recorder run: {run['run_id']}")
     print(f"Task: {run['task_id']} - {run['task_title']}")
+    if args.enforce:
+        enforcement = run["enforcement"]
+        backend = enforcement["backend"]
+        if backend == "none":
+            print(
+                "WARNING: --enforce requested but no sandbox backend is available on this host. "
+                "Recorded commands will fail closed (refuse to run)."
+            )
+        else:
+            print(f"Enforcement: ON (backend={backend}). Sensitive reads/writes/deletes will be blocked.")
     return 0
 
 
@@ -136,7 +164,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         command = command[1:]
     if not command:
         raise ValueError("Usage: agentproof run -- <command>")
-    return record_command(command, cwd=Path.cwd())
+    return record_command(command, cwd=Path.cwd(), enforce=args.enforce)
 
 
 def cmd_event(args: argparse.Namespace) -> int:

@@ -30,6 +30,43 @@ It does not replace:
 - endpoint security
 - repository branch protection
 
+## Real-Time Enforcement (Optional)
+
+By default AgentProof Recorder is observe-only: it *flags* sensitive-file access
+after the fact (`action_taken="flagged"`). With `--enforce` it also *prevents* it
+in real time (`action_taken="blocked"`):
+
+```bash
+agentproof start --agent claude-code --enforce
+```
+
+In enforce mode, every command recorded with `agentproof run` is launched inside
+an OS sandbox that denies **read, write, and delete** on sensitive paths
+(`agentproof.sensitive.SECRET_PATTERNS`: `.env`, `*.pem`, `*.key`, `id_rsa`,
+`credentials`, `secrets/`, …). Because AgentProof launches the agent, it confines
+the **process tree it spawns** — no kernel driver, EDR, or elevated privilege.
+
+Backends:
+
+- **macOS** — `sandbox-exec` (Seatbelt). Denies with `EPERM`. Verified.
+- **Linux** — `bubblewrap`. Masks sensitive paths in a mount namespace. **Authored
+  but not yet verified on a Linux host**; a masked file reads as *empty* rather
+  than raising `EPERM`, and masks are enumerated at launch (files created later
+  that match a pattern are not covered). A Landlock/LD_PRELOAD backend is planned
+  to restore `EPERM` + pattern coverage.
+
+Each decision is recorded as an `enforcement_decision` event in the hash-chained
+log, so prevention is itself auditable.
+
+Honest limits:
+
+- **Fail-closed.** If no sandbox backend is available, recorded commands refuse to
+  run rather than run unprotected.
+- This is a **guardrail against accidental or rogue access, not a containment
+  boundary** for an attacker who fully controls the agent binary.
+- It confines processes AgentProof spawns (the agent and its children), not
+  pre-existing processes.
+
 ## Sidecar Auth
 
 The sidecar supports optional bearer-token auth:

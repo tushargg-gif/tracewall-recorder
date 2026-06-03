@@ -18,6 +18,7 @@ from agentproof.recorder import (
     write_json,
 )
 from agentproof.scoring import score_run
+from agentproof.sensitive import SECRET_PATTERNS, looks_secret_path
 from agentproof.store import default_store_for_project
 
 
@@ -39,17 +40,6 @@ PACKAGE_FILES = {
     "Gemfile",
     "Gemfile.lock",
 }
-
-SECRET_PATTERNS = (
-    ".env",
-    ".env.",
-    ".pem",
-    ".key",
-    "id_rsa",
-    "id_dsa",
-    "credentials",
-    "secrets/",
-)
 
 TEST_COMMAND_MARKERS = (
     "test",
@@ -317,11 +307,6 @@ def build_checks(
         )
     )
     return checks
-
-
-def looks_secret_path(path: str) -> bool:
-    lowered = path.lower()
-    return any(marker in lowered for marker in SECRET_PATTERNS)
 
 
 def is_package_file(path: str) -> bool:

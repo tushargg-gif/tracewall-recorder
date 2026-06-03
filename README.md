@@ -3,7 +3,8 @@
 <p align="center"><strong>Tamper-evident evidence for AI agent work.</strong></p>
 
 <p align="center">
-  AgentProof Recorder verifies whether agents followed policy, even when an agent claims it did.
+  AgentProof Recorder verifies whether agents followed policy, even when an agent claims it did —
+  and can block unsafe access to sensitive files before it happens.
 </p>
 
 <p align="center">
@@ -23,7 +24,7 @@
   <a href="CONTRIBUTING.md">Contributing</a>
 </p>
 
-AgentProof Recorder is a tamper-evident evidence layer for AI agent work. It records what agents actually did - file changes, commands, tests, policy decisions, MCP/tool calls, and final responses - then verifies that evidence against the task policy.
+AgentProof Recorder is a tamper-evident evidence layer for AI agent work. It records what agents actually did - file changes, commands, tests, policy decisions, MCP/tool calls, and final responses - then verifies that evidence against the task policy. With enforce mode it goes one step further and **blocks** reads, writes, and deletes of sensitive files in real time, before they can do harm.
 
 > Early alpha: AgentProof Recorder is designed for local experimentation, agent-run evidence capture, and verification workflows. It does not claim to make local agents tamper-proof.
 >
@@ -76,23 +77,71 @@ The bottleneck is moving from writing code to verifying agent work. AgentProof R
 
 It does not replace CI, tests, or code review. It makes the handoff easier to inspect.
 
-## What AgentProof Recorder Does
+## Features
 
-AgentProof Recorder records:
+What AgentProof Recorder can do today.
 
-- file changes
-- commands
-- tests
-- final response
-- policy violations
-- MCP/tool calls
-- tamper-evident local event chain
+### Evidence capture — record what the agent actually did
 
-Then it verifies the run against a task contract and generates a trust report.
+- Before/after file snapshots with a precise diff (added, modified, deleted)
+- Command executions with exit codes, duration, and captured stdout/stderr
+- Test detection and pass/fail results
+- The agent's final response or summary
+- Universal agent events (network requests, browser actions, artifacts) via `agentproof event`
+- MCP / tool-call activity through a stdio proxy and an HTTP sidecar proxy
+- Git context: branch, HEAD, dirty state, and start/end diffs
+
+### Real-time enforcement — block before harm (opt-in `--enforce`)
+
+- Denies **read, write, and delete** on sensitive paths (`.env`, `*.pem`, `*.key`, `id_rsa`, `credentials`, `secrets/`, …) before the operation lands
+- Confines the agent's spawned process tree inside an OS sandbox — no kernel driver, EDR, or elevated privilege
+- Backends: macOS `sandbox-exec` (verified) and Linux `bubblewrap` (experimental — not yet verified, see [security model](docs/security-model.md))
+- **Fail-closed**: if no sandbox backend is available, recorded commands refuse to run rather than run unprotected
+- Every allow/block is written to the tamper-evident chain as an `enforcement_decision`
+- Uses the same sensitive-path definitions as the verifier, so what is blocked can never drift from what is flagged
+
+### Verification — catch policy violations
+
+- Forbidden path changes
+- Unrelated / out-of-scope file changes
+- Secret-like file changes
+- Dependency / lockfile changes
+- Missing or failed required tests, and missing regression tests
+- Unapproved commands and failed commands
+- Large diffs that need human review
+- Unsafe network / browser events
+- Forbidden MCP tools
+- MCP targets pointing at local/private networks (SSRF guard)
+- Local event-log tampering
+- Custom, pluggable verifier checks
+
+### Integrity & secret handling
+
+- Append-only event log, SHA-256 **hash-chained** so any edit or reorder is detectable
+- Chain verification surfaced as a first-class check in every report
+- Automatic redaction of secret-like fields (authorization, api_key, token, password, cookie, …) before evidence is written to disk
+
+### Scoring & reporting
+
+- 0–100 score across weighted dimensions, plus a low/medium/high risk level
+- Verdict: Pass / Partial Pass / Fail
+- Markdown and JSON trust reports built for human review
+
+### Orchestration & integration
+
+- Local sidecar service (FastAPI) with optional bearer-token auth
+- MCP stdio + HTTP proxy evidence capture for master agents and orchestrators
+- Stable `agentproof` CLI, with an `agentproof-recorder` alias
+
+## How It Works
 
 ```text
-task contract -> agent run -> evidence capture -> verification -> trust report
+task contract -> guarded agent run -> evidence capture -> verification -> trust report
 ```
+
+A task contract declares what the agent may touch and what success means. The agent
+run is recorded (and, in enforce mode, confined). Evidence is captured into a
+hash-chained log, verified against the contract, and summarized in a trust report.
 
 ## 60-Second Example
 
@@ -102,7 +151,7 @@ cd AgentProof-Recorder
 pip install -e ".[dev]"
 
 agentproof init
-agentproof start --agent "claude-code"
+agentproof start --agent "claude-code"   # add --enforce to block sensitive-file access
 agentproof run -- pytest
 agentproof stop --final-response "Fixed auth bug"
 agentproof verify
@@ -157,22 +206,34 @@ Local run capture for file changes, command executions, final responses, univers
 
 Checks the recorded run against the task contract and produces pass, partial pass, or fail results.
 
+**Enforcement guard (optional)**
+
+Runs the agent's commands inside an OS sandbox so reads, writes, and deletes of sensitive files are blocked in real time, not just flagged after the fact.
+
 **Trust report**
 
 Markdown and JSON output that summarizes score, risk, policy violations, changed files, commands, and observed events.
 
-## What It Can Catch Today
+## Block Before Harm (Enforce Mode)
 
-- forbidden path changes
-- unrelated file changes
-- secret-like file changes
-- dependency file changes
-- missing or failed test commands
-- bad data or artifact outputs
-- unsafe network/browser events
-- forbidden MCP tools
-- MCP targets that point at local/private networks
-- local event-log tampering
+By default AgentProof Recorder *flags* sensitive-file access after the fact. With
+`--enforce` it *prevents* it in real time:
+
+```bash
+agentproof start --agent "claude-code" --enforce
+agentproof run -- python build.py     # reads/writes/deletes of .env, *.pem,
+                                      # secrets/ … are blocked, not just logged
+```
+
+Because AgentProof launches the agent, it confines the **process tree it spawns**
+inside an OS sandbox (`sandbox-exec` on macOS, `bubblewrap` on Linux) — no kernel
+driver, EDR, or elevated privilege. Each decision is written to the tamper-evident
+event chain as an `enforcement_decision`, and the mode is **fail-closed** (if no
+sandbox backend is available, recorded commands refuse to run).
+
+This is a guardrail against accidental/rogue access, not a containment boundary for
+a fully attacker-controlled agent. See [docs/security-model.md](docs/security-model.md)
+for backend details and limits.
 
 ## Local Sidecar And MCP Proxy
 
@@ -213,6 +274,7 @@ AgentProof Recorder is early alpha. The current focus is a useful local develope
 
 - record coding-agent runs
 - verify work against explicit task contracts
+- block reads/writes/deletes of sensitive files in real time (macOS verified; Linux experimental)
 - produce evidence reports for human review
 - support MCP proxy evidence capture for orchestrators
 
