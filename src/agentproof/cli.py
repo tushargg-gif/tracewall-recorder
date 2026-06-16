@@ -7,7 +7,18 @@ import sys
 
 from agentproof.contracts import load_contract, write_default_contract
 from agentproof.events import parse_payload
+from agentproof import enforce
+from agentproof.enforce import POLICY_FILENAME
+from agentproof.flow import action_flow, render_flow
+from agentproof.hook import run_post, run_pre
 from agentproof.mcp_stdio import run_stdio_proxy
+from agentproof.recommend import (
+    accept_recommendation,
+    recommend_policy,
+    render_recommendations,
+    save_recommended_policy,
+)
+from agentproof.review import export_review_html, review_state, serve_review, set_verdict
 from agentproof.recorder import (
     create_run,
     latest_run_id,
@@ -17,7 +28,6 @@ from agentproof.recorder import (
     stop_run,
 )
 from agentproof.reports import generate_report
-from agentproof.sidecar import run_sidecar
 from agentproof.verifier import verify_run
 
 
@@ -54,6 +64,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_false",
         help="Disable enforcement for this command (overrides run mode).",
     )
+    run.add_argument(
+        "--policy-mode",
+        choices=["observe", "alert", "block"],
+        default="observe",
+        help="Enforce the active learned policy: observe (record), alert (warn), or block (stop).",
+    )
     run.add_argument("wrapped_command", nargs=argparse.REMAINDER)
 
     event = subcommands.add_parser("event", help="Record a universal agent event.")
@@ -74,24 +90,41 @@ def build_parser() -> argparse.ArgumentParser:
     report.add_argument("--print", action="store_true", dest="print_report", help="Print Markdown report.")
     report.add_argument("--json", action="store_true", dest="json_report", help="Print JSON report.")
 
-    sidecar = subcommands.add_parser("sidecar", help="Run the local AgentProof Recorder sidecar service.")
-    sidecar.add_argument("--host", default="127.0.0.1")
-    sidecar.add_argument("--port", default=8797, type=int)
-    sidecar.add_argument("--root", default=".agentproof")
-    sidecar.add_argument("--auth-token", default=None, help="Require Bearer token auth for sidecar API requests.")
-    sidecar.add_argument(
-        "--allowed-mcp-target-host",
-        action="append",
-        default=[],
-        help="Allow Streamable HTTP MCP proxy registration only for this target hostname. Repeatable.",
-    )
+    flow = subcommands.add_parser("flow", help="Show the ordered action flow (commands + tool calls) for a run.")
+    flow.add_argument("--run-id", default=None)
+    flow.add_argument("--json", action="store_true", dest="json_flow", help="Print the action flow as JSON.")
 
-    shell = subcommands.add_parser("shell", help="Show shell recording guidance.")
-    shell.add_argument("--run-id", default=None, help="Run ID to attach guidance to. Defaults to the active run.")
+    review = subcommands.add_parser("review", help="Open the allow/block review timeline for a run.")
+    review.add_argument("--run-id", default=None)
+    review.add_argument("--host", default="127.0.0.1")
+    review.add_argument("--port", default=8898, type=int)
+    review.add_argument("--export", default=None, metavar="PATH", help="Write a static review HTML file instead of serving.")
+    review.add_argument("--json", action="store_true", dest="json_review", help="Print the review state (run + flow + risk + policy coverage) as JSON.")
+
+    verdict = subcommands.add_parser("verdict", help="Record an allow/block verdict for one action (used by editors/scripts).")
+    verdict.add_argument("--run-id", default=None)
+    verdict.add_argument("--seq", required=True, type=int, help="The action's seq number from the flow.")
+    verdict.add_argument("--decision", required=True, choices=["allow", "block", "clear"])
+    verdict.add_argument("--note", default="")
+
+    policy = subcommands.add_parser("policy", help="View every rule in the active policy, in one place.")
+    policy.add_argument("--json", action="store_true", dest="json_policy", help="Print the active policy as JSON.")
+    policy.add_argument("--export", default=None, metavar="PATH", help="Write a standalone policies HTML page.")
+
+    hook = subcommands.add_parser("hook", help="Claude Code hook entrypoint (reads a tool event on stdin).")
+    hook.add_argument("--post", action="store_true", help="Record a PostToolUse outcome instead of gating.")
+
+    install_hook = subcommands.add_parser("install-hook", help="Install AgentProof as a Claude Code hook (.claude/settings.json).")
+    install_hook.add_argument("--global", dest="global_install", action="store_true", help="Install to ~/.claude instead of the project.")
+
+    recommend = subcommands.add_parser("recommend", help="Recommend policy rules (with reasons) from the review verdicts.")
+    recommend.add_argument("--run-id", default=None)
+    recommend.add_argument("--json", action="store_true", dest="json_rec", help="Print the recommended policy as JSON.")
+    recommend.add_argument("--accept", action="store_true", help="Merge the recommended rules into the active project policy.")
 
     mcp = subcommands.add_parser("mcp", help="Run MCP proxy modes.")
     mcp_subcommands = mcp.add_subparsers(dest="mcp_command", required=True)
-    stdio = mcp_subcommands.add_parser("stdio", help="Proxy a stdio MCP server.")
+    stdio = mcp_subcommands.add_parser("stdio", help="Proxy a stdio MCP server and record its tool calls.")
     stdio.add_argument("--run-id", required=True)
     stdio.add_argument("--server-name", required=True)
     stdio.add_argument("server_command", nargs=argparse.REMAINDER)
@@ -117,10 +150,20 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_verify(args)
         if args.command == "report":
             return cmd_report(args)
-        if args.command == "sidecar":
-            return cmd_sidecar(args)
-        if args.command == "shell":
-            return cmd_shell(args)
+        if args.command == "flow":
+            return cmd_flow(args)
+        if args.command == "review":
+            return cmd_review(args)
+        if args.command == "verdict":
+            return cmd_verdict(args)
+        if args.command == "policy":
+            return cmd_policy(args)
+        if args.command == "hook":
+            return cmd_hook(args)
+        if args.command == "install-hook":
+            return cmd_install_hook(args)
+        if args.command == "recommend":
+            return cmd_recommend(args)
         if args.command == "mcp":
             return cmd_mcp(args)
     except Exception as exc:
@@ -164,7 +207,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         command = command[1:]
     if not command:
         raise ValueError("Usage: agentproof run -- <command>")
-    return record_command(command, cwd=Path.cwd(), enforce=args.enforce)
+    return record_command(command, cwd=Path.cwd(), enforce=args.enforce, policy_mode=args.policy_mode)
 
 
 def cmd_event(args: argparse.Namespace) -> int:
@@ -206,30 +249,101 @@ def cmd_report(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_sidecar(args: argparse.Namespace) -> int:
-    run_sidecar(
-        args.host,
-        args.port,
-        args.root,
-        auth_token=args.auth_token,
-        allowed_mcp_target_hosts=args.allowed_mcp_target_host,
-    )
+def cmd_flow(args: argparse.Namespace) -> int:
+    run_id = args.run_id or latest_run_id(Path.cwd())
+    flow = action_flow(run_id, cwd=Path.cwd())
+    if args.json_flow:
+        print(json.dumps(flow, indent=2, sort_keys=True))
+    else:
+        print(render_flow(flow))
     return 0
 
 
-def cmd_shell(args: argparse.Namespace) -> int:
-    run_id = args.run_id
-    if not run_id:
+def cmd_review(args: argparse.Namespace) -> int:
+    run_id = args.run_id or latest_run_id(Path.cwd())
+    if args.json_review:
+        print(json.dumps(review_state(run_id, cwd=Path.cwd())))
+        return 0
+    if args.export:
+        out = export_review_html(run_id, Path(args.export), cwd=Path.cwd())
+        print(f"Review page written: {out}")
+        return 0
+    serve_review(run_id, host=args.host, port=args.port, cwd=Path.cwd())
+    return 0
+
+
+def cmd_verdict(args: argparse.Namespace) -> int:
+    run_id = args.run_id or latest_run_id(Path.cwd())
+    set_verdict(run_id, args.seq, args.decision, note=args.note, cwd=Path.cwd())
+    print(json.dumps({"run_id": run_id, "seq": args.seq, "decision": args.decision}))
+    return 0
+
+
+def cmd_hook(args: argparse.Namespace) -> int:
+    stdin_text = sys.stdin.read()
+    out = run_post(stdin_text, Path.cwd()) if args.post else run_pre(stdin_text, Path.cwd())
+    print(json.dumps(out))
+    return 0
+
+
+def cmd_install_hook(args: argparse.Namespace) -> int:
+    base = Path.home() if args.global_install else Path.cwd()
+    settings = base / ".claude" / "settings.json"
+    settings.parent.mkdir(parents=True, exist_ok=True)
+    data: dict = {}
+    if settings.exists():
         try:
-            run_id = latest_run_id(Path.cwd())
-        except RuntimeError:
-            run_id = None
-    print("agentproof shell is available as a lightweight placeholder.")
-    if run_id:
-        print(f"Current run: {run_id}")
+            data = json.loads(settings.read_text(encoding="utf-8"))
+        except (ValueError, OSError):
+            data = {}
+    command = f"{sys.executable} -m agentproof hook"
+    hooks = data.setdefault("hooks", {})
+
+    def ensure(event: str, cmd: str) -> None:
+        groups = hooks.setdefault(event, [])
+        for group in groups:
+            for h in group.get("hooks", []):
+                if "agentproof" in str(h.get("command", "")):
+                    return
+        groups.append({"matcher": "*", "hooks": [{"type": "command", "command": cmd}]})
+
+    ensure("PreToolUse", command)
+    ensure("PostToolUse", command + " --post")
+    settings.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    print(f"Installed AgentProof hook → {settings}")
+    print("Every Claude Code tool call (terminal or VS Code) now passes through AgentProof.")
+    print("Restart Claude Code or run /hooks to load it.")
+    return 0
+
+
+def cmd_policy(args: argparse.Namespace) -> int:
+    agentproof_dir = paths_for_run(cwd=Path.cwd()).agentproof_dir
+    policy = enforce.load_active_policy(agentproof_dir)
+    if args.export:
+        from agentproof.review import export_policy_html
+        out = export_policy_html(policy, Path(args.export))
+        print(f"Policies page written: {out}")
+        return 0
+    if args.json_policy:
+        print(json.dumps({"summary": enforce.policy_summary(policy), "rules": policy.get("rules", [])}, indent=2, sort_keys=True))
     else:
-        print("No active run found. Start one with `agentproof start --agent <name>`.")
-    print("For now, record commands with `agentproof run -- <command>`.")
+        print(enforce.render_policy(policy))
+    return 0
+
+
+def cmd_recommend(args: argparse.Namespace) -> int:
+    run_id = args.run_id or latest_run_id(Path.cwd())
+    recommendation = recommend_policy(run_id, cwd=Path.cwd())
+    path = save_recommended_policy(run_id, recommendation, cwd=Path.cwd())
+    if args.accept:
+        policy = accept_recommendation(run_id, recommendation, cwd=Path.cwd())
+    if args.json_rec:
+        print(json.dumps(recommendation, indent=2, sort_keys=True))
+    else:
+        print(render_recommendations(recommendation))
+        print(f"\nSaved: {path}")
+        if args.accept:
+            print(f"Accepted {len(policy['rules'])} rule(s) into the active policy (.agentproof/{POLICY_FILENAME}).")
     return 0
 
 

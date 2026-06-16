@@ -25,3 +25,23 @@ def looks_secret_path(path: str) -> bool:
     """True if ``path`` looks like a secret/credential file by name."""
     lowered = path.lower()
     return any(marker in lowered for marker in SECRET_PATTERNS)
+
+
+def looks_secret_token(token: str) -> bool:
+    """Stricter check for whether a *command argument* names a secret file.
+
+    ``looks_secret_path`` substring-matches, which is fine for real file paths
+    but produces false positives on arbitrary command tokens — e.g. ``.env`` is
+    a substring of ``os.environ``. This matches on the basename / extension so
+    ``grep os.environ`` is not mistaken for reading a secret.
+    """
+    t = token.strip().strip("'\"").lower()
+    if not t:
+        return False
+    if "secrets/" in t:
+        return True
+    base = t.rsplit("/", 1)[-1]
+    for ext in (".env", ".pem", ".key"):
+        if base == ext or base.startswith(ext) or base.endswith(ext):
+            return True
+    return any(name in base for name in ("id_rsa", "id_dsa", "credentials"))

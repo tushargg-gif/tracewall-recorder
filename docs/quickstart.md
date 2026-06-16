@@ -1,6 +1,8 @@
 # Quickstart
 
-This guide gets AgentProof Recorder running locally against a repository.
+AgentProof is a guardrail in front of your coding agent. This gets it running
+locally. For the full Claude Code walkthrough + smoke test, see
+[claude-code-quickstart.md](claude-code-quickstart.md).
 
 ## Install
 
@@ -10,64 +12,77 @@ cd AgentProof-Recorder
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install -e ".[dev]"
-```
-
-Check the CLI:
-
-```bash
 agentproof --help
-agentproof-recorder --help
 ```
 
-## Run The Basic Flow
+## Put it in front of Claude Code (recommended)
+
+From the project you'll work in:
 
 ```bash
-agentproof init
-agentproof start --agent "claude-code"
-agentproof run -- pytest
-agentproof stop --final-response "Fixed auth bug"
-agentproof verify
-agentproof report --print
+agentproof init           # creates .agentproof/
+agentproof install-hook   # adds Pre/PostToolUse hooks to .claude/settings.json
 ```
 
-This creates a local `.agentproof/` directory with run evidence, verification output, and reports.
+Restart Claude Code (terminal or VS Code). Every tool call now passes through
+AgentProof. With zero further config it will:
 
-## How To Use With A Coding Agent
+- **deny** reads of secret files (`.env`, `*.pem`, …)
+- **ask** you before installs, web fetches, destructive commands, and consequential MCP tools
+- **allow** the safe majority
 
-1. Create or edit `.agentproof/task.yml`.
-2. Start a run with `agentproof start`.
-3. Use your coding agent normally.
-4. Run important commands through `agentproof run -- <command>`.
-5. Stop the run with the agent's final response.
-6. Verify and print the report.
-
-AgentProof Recorder complements CI. It gives reviewers a local evidence report before code review or merge.
-
-## Useful Commands
+See what it captured:
 
 ```bash
-agentproof init --force
-agentproof start --agent "cursor"
-agentproof run -- python -m pytest
-agentproof event network.request --payload '{"url":"https://api.example.com/data"}'
-agentproof stop --final-response "Done"
-agentproof verify --json
-agentproof report --print
+agentproof flow            # the action timeline, attributed to the agent
+agentproof review          # allow/block review (opens in your browser)
+agentproof policy          # every rule currently in force
 ```
 
-## Sidecar Mode
+## Teach it (policy by demonstration)
 
-For a master agent or orchestrator:
+In `agentproof review`, mark anything you want stopped as **Block** (or approved as
+**Allow**), then:
 
 ```bash
-agentproof sidecar --host 127.0.0.1 --port 8797 --root .agentproof
+agentproof recommend --accept   # turns your verdicts into reusable rules
 ```
 
-Use auth if binding beyond localhost:
+Next time, what you blocked is **denied automatically**, with your reason attached.
+`ask` becomes `deny`/`allow` as you teach it.
+
+## How decisions are made
+
+1. **Your learned policy wins** (anything you've allowed/blocked).
+2. Otherwise **safe defaults**: deny secrets; ask on risky; allow the rest.
+
+No ML deciding "good vs bad" — a small deterministic denylist plus *your* decisions.
+
+## Orchestrating agents directly (library)
+
+If you drive worker agents yourself, route their actions through the `Gateway` so
+every action is recorded, attributed, and policy-checked by construction:
+
+```python
+from agentproof.gateway import Gateway
+gw = Gateway(run_id, policy_mode="block")          # observe | alert | block
+gw.command("worker-1", ["pytest", "-q"])           # recorded + gated
+gw.tool_call("worker-1", "jira", "create_issue", {"title": "bug"})
+```
+
+## Verification & reports (optional)
 
 ```bash
-agentproof sidecar --host 0.0.0.0 --port 8797 --auth-token "$AGENTPROOF_TOKEN"
+agentproof verify --json     # check a run against its task contract
+agentproof report --print    # markdown / json trust report
 ```
 
-Read [mcp-proxy.md](mcp-proxy.md) for MCP proxying.
+## Useful commands
 
+```bash
+agentproof install-hook --global     # install for every project (~/.claude)
+agentproof review --export out.html  # static review page (shareable)
+agentproof policy --export pol.html  # static policy page
+agentproof verdict --seq 3 --decision block   # set a verdict from a script/editor
+agentproof mcp stdio --run-id <id> --server-name jira -- <server cmd>
+```

@@ -12,6 +12,7 @@ import subprocess
 import time
 import uuid
 
+from agentproof import enforce as policy_engine
 from agentproof.contracts import TaskContract
 from agentproof.enforcement import (
     DEFAULT_SENSITIVE_PATTERNS,
@@ -229,10 +230,53 @@ def run_is_enforced(run: dict[str, Any]) -> bool:
     return bool((run.get("enforcement") or {}).get("enabled")) or run.get("control_mode") == "enforce"
 
 
+def _apply_command_policy(paths: RunPaths, command_text: str, policy_mode: str) -> bool:
+    """Evaluate the command against the active policy. Returns True if blocked."""
+    policy = policy_engine.load_active_policy(paths.agentproof_dir)
+    decision = policy_engine.evaluate_action(
+        policy_engine.action_from_command(command_text), policy
+    )
+    if decision["decision"] == "none":
+        return False
+    outcome = policy_engine.enforced_outcome(decision["decision"], policy_mode)
+    append_event(
+        paths,
+        "policy.decision",
+        {
+            "action": command_text,
+            "match_kind": "command",
+            "decision": decision["decision"],
+            "rule_id": decision["rule_id"],
+            "reason": decision["reason"],
+            "mode": policy_mode,
+            "outcome": outcome,
+        },
+    )
+    if outcome == "blocked":
+        append_event(
+            paths,
+            "policy.enforcement",
+            {"command": command_text, "rule_id": decision["rule_id"],
+             "reason": decision["reason"], "action_taken": "blocked"},
+        )
+        print(
+            f"AgentProof: BLOCKED by policy [{decision['rule_id']}] — {decision['reason']}",
+            file=os.sys.stderr,
+        )
+        return True
+    if outcome == "alerted":
+        print(
+            f"AgentProof: ALERT [{decision['rule_id']}] — {decision['reason']} (running anyway; alert mode)",
+            file=os.sys.stderr,
+        )
+    return False
+
+
 def record_command(
     command: list[str],
     cwd: Path | None = None,
     enforce: bool | None = None,
+    policy_mode: str = "observe",
 ) -> int:
     if not command:
         raise ValueError("No command provided.")
@@ -242,6 +286,12 @@ def record_command(
     enforcing = run_is_enforced(run) if enforce is None else enforce
     started = time.time()
     command_text = shlex.join(command)
+
+    # Policy enforcement at the command chokepoint (active learned policy).
+    blocked = _apply_command_policy(paths, command_text, policy_mode)
+    if blocked:
+        return 126
+
     append_event(paths, "command_started", {"command": command_text, "enforced": enforcing})
 
     if enforcing:

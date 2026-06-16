@@ -67,22 +67,6 @@ Honest limits:
 - It confines processes AgentProof spawns (the agent and its children), not
   pre-existing processes.
 
-## Sidecar Auth
-
-The sidecar supports optional bearer-token auth:
-
-```bash
-agentproof sidecar --auth-token "$AGENTPROOF_TOKEN"
-```
-
-When a token is set, every endpoint except `/health` requires:
-
-```text
-Authorization: Bearer <token>
-```
-
-A warning is printed if the sidecar binds to `0.0.0.0` without auth.
-
 ## Evidence Integrity
 
 Event evidence is append-only JSONL with hash chaining. Verification checks the chain to detect edits.

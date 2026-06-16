@@ -7,7 +7,6 @@ from agentproof.checks import check, sanitize_name
 from agentproof.contracts import TaskContract
 from agentproof.events import event_type_counts, verify_event_chain
 from agentproof.policy import violations_from_checks
-from agentproof.plugins import run_verifier_plugins
 from agentproof.recorder import (
     diff_snapshots,
     latest_run_id,
@@ -68,7 +67,6 @@ def verify_run(run_id: str | None = None, cwd: Path | None = None) -> dict[str, 
     changed_files = snapshot_diff["files_changed"]
     checks = build_checks(contract, changed_files, command_events, paths)
     checks.append(event_integrity_check(events))
-    checks.extend(run_verifier_plugins(contract, run, paths, events, command_events, changed_files))
     violations = [violation.to_dict() for violation in violations_from_checks(checks)]
     scoring = score_run(run, checks, violations, command_events, changed_files)
     verdict = verdict_from_score(scoring["score"], violations, checks)

@@ -1,0 +1,39 @@
+{
+  "name": "agentproof-vscode",
+  "displayName": "AgentProof",
+  "description": "Review and govern your coding agent's actions — recorded, risk-flagged, allow/block — right inside VS Code.",
+  "version": "0.1.0",
+  "publisher": "agentproof",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other"],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "agentproof.openReview", "title": "AgentProof: Review Latest Run" },
+      { "command": "agentproof.openPolicies", "title": "AgentProof: View Active Policy" },
+      { "command": "agentproof.installHook", "title": "AgentProof: Install Claude Code Hook" },
+      { "command": "agentproof.recommendAccept", "title": "AgentProof: Learn Policy from Reviews" }
+    ],
+    "configuration": {
+      "title": "AgentProof",
+      "properties": {
+        "agentproof.cliPath": {
+          "type": "string",
+          "default": "agentproof",
+          "description": "Path to the agentproof CLI (or e.g. 'python3 -m agentproof' won't work here — use an absolute path to the agentproof executable if it isn't on PATH)."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.4.0"
+  }
+}

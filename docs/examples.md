@@ -6,7 +6,7 @@ Example runs live under [../examples](../examples).
 
 Path: [../examples/bad-agent-run](../examples/bad-agent-run)
 
-Shows a run with forbidden path changes, missing evidence, bad output, and MCP/tool risk.
+Shows a run with forbidden path changes, missing evidence, and bad output.
 
 Expected result:
 
@@ -28,35 +28,6 @@ Expected result:
 Verdict: Pass
 Risk: low
 ```
-
-## MCP Blocked Tool
-
-Path: [../examples/mcp-blocked-tool](../examples/mcp-blocked-tool)
-
-Shows an MCP policy blocking a forbidden tool call.
-
-Expected result:
-
-```text
-MCP blocked: yes
-JSON-RPC error: -32001
-```
-
-## Orchestrator Demo Test Harness
-
-Path: [../agent-demo](../agent-demo)
-
-Shows a master-agent workflow that selects a reusable policy template, amends policy automatically, registers scoped workers, records actual per-worker file changes, and catches a Rogue Agent that changes `package.json`.
-
-Expected result:
-
-```text
-Harness status: PASS
-AgentProof verdict: Fail
-Violating agent: Rogue Agent
-```
-
-Published result summary: [../agent-demo/RESULTS.md](../agent-demo/RESULTS.md)
 
 ## Root Bad-Agent Report
 
