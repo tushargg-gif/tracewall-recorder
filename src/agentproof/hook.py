@@ -64,7 +64,10 @@ def action_from_event(tool_name: str, tool_input: dict[str, Any]) -> tuple[dict[
 
 # --- decide allow / ask / deny ---------------------------------------------
 
-def decide(action: dict[str, Any], label: str, cwd: Path) -> dict[str, Any]:
+def decide(action: dict[str, Any], label: str, cwd: Path, ask_mode: str = "native") -> dict[str, Any]:
+    """Decide allow/ask/deny. ``ask_mode`` maps the 'ask' decision to a permission:
+    native = 'ask' (Claude Code), deny = block it, defer = allow and let the host's
+    own approval handle it (Codex, whose hooks can't 'ask')."""
     policy = enforce.load_active_policy(paths_for_run(cwd=cwd).agentproof_dir)
     learned = enforce.evaluate_action(action, policy)
     if learned["decision"] != "none":
@@ -72,9 +75,12 @@ def decide(action: dict[str, Any], label: str, cwd: Path) -> dict[str, Any]:
     else:
         decision, reason = _default_decision(action, label)
         rule_id, source = None, "default"
+    permission = _PERMISSION.get(decision, "allow")
+    if decision == "ask":
+        permission = {"native": "ask", "deny": "deny", "defer": "allow"}.get(ask_mode, "ask")
     return {
         "decision": decision,
-        "permission": _PERMISSION.get(decision, "allow"),
+        "permission": permission,
         "reason": reason,
         "rule_id": rule_id,
         "source": source,
@@ -104,7 +110,8 @@ def _insight_title(action: dict[str, Any], label: str) -> str:
 
 # --- record + run handling -------------------------------------------------
 
-def _ensure_run(cwd: Path) -> str:
+def ensure_run(cwd: Path, agent: str = AGENT) -> str:
+    """Return the active run id for this session, creating one if needed."""
     paths = paths_for_run(cwd=cwd)
     active = paths.active_file
     if active.exists() and active.read_text(encoding="utf-8").strip():
@@ -112,50 +119,51 @@ def _ensure_run(cwd: Path) -> str:
     task = paths.agentproof_dir / "task.yml"
     if not task.exists():
         write_default_contract(task)
-    return create_run(load_contract(task), agent=AGENT, cwd=cwd)["run_id"]
+    return create_run(load_contract(task), agent=agent, cwd=cwd)["run_id"]
 
 
-def _record_pre(run_id: str, cwd: Path, action: dict[str, Any], label: str, decision: dict[str, Any], tool_input: dict[str, Any]):
+def _record_pre(run_id: str, cwd: Path, action: dict[str, Any], label: str, decision: dict[str, Any],
+                tool_input: dict[str, Any], source: str):
     paths = paths_for_run(run_id, cwd)
     if action.get("kind") == "tool_call":
         append_event(paths, "mcp.tool.call.started", {
-            "agent": AGENT, "server_name": action.get("server"),
+            "agent": source, "source": source, "server_name": action.get("server"),
             "request": {"params": {"name": action.get("tool"), "arguments": redact_secrets(tool_input)}},
         })
     else:
-        append_event(paths, "command_started", {"agent": AGENT, "command": label})
+        append_event(paths, "command_started", {"agent": source, "source": source, "command": label})
     append_event(paths, "policy.decision", {
-        "agent": AGENT, "action": label, "match_kind": action.get("kind"),
+        "agent": source, "source": source, "action": label, "match_kind": action.get("kind"),
         "decision": decision["decision"], "rule_id": decision["rule_id"],
-        "reason": decision["reason"], "source": decision["source"],
+        "reason": decision["reason"], "policy_source": decision["source"],
         "outcome": {"block": "blocked", "ask": "ask"}.get(decision["decision"], "allowed"),
     })
     if decision["decision"] == "block":
         append_event(paths, "policy.enforcement", {
-            "agent": AGENT, "action": label, "rule_id": decision["rule_id"],
+            "agent": source, "source": source, "action": label, "rule_id": decision["rule_id"],
             "reason": decision["reason"], "action_taken": "blocked",
         })
         # the action is blocked and will never run/finish — record the attempt so
         # the flow shows "tried, blocked" instead of nothing.
         if action.get("kind") == "tool_call":
-            append_event(paths, "mcp.error", {"agent": AGENT, "server_name": action.get("server"),
+            append_event(paths, "mcp.error", {"agent": source, "source": source, "server_name": action.get("server"),
                                               "error": "blocked by policy", "rule_id": decision["rule_id"]})
         else:
-            append_event(paths, "command_finished", {"agent": AGENT, "command": label,
+            append_event(paths, "command_finished", {"agent": source, "source": source, "command": label,
                                                      "exit_code": None, "blocked": True})
 
 
 # --- entrypoints (called by the CLI) ---------------------------------------
 
-def run_pre(stdin_text: str, cwd: Path) -> dict[str, Any]:
-    """Handle a PreToolUse event: decide, record, return Claude Code's JSON."""
+def run_pre(stdin_text: str, cwd: Path, ask_mode: str = "native", source: str = AGENT) -> dict[str, Any]:
+    """Handle a PreToolUse event: decide, record, return the host's JSON."""
     try:
         event = json.loads(stdin_text or "{}")
         action, label = action_from_event(event.get("tool_name", ""), event.get("tool_input") or {})
-        d = decide(action, label, cwd)
+        d = decide(action, label, cwd, ask_mode=ask_mode)
         try:
-            run_id = _ensure_run(cwd)
-            _record_pre(run_id, cwd, action, label, d, event.get("tool_input") or {})
+            run_id = ensure_run(cwd, agent=source)
+            _record_pre(run_id, cwd, action, label, d, event.get("tool_input") or {}, source)
         except Exception:
             pass  # never let a recording hiccup break the agent
         return {"hookSpecificOutput": {
@@ -168,18 +176,18 @@ def run_pre(stdin_text: str, cwd: Path) -> dict[str, Any]:
                                        "permissionDecisionReason": f"AgentProof hook error (allowed): {exc}"}}
 
 
-def run_post(stdin_text: str, cwd: Path) -> dict[str, Any]:
+def run_post(stdin_text: str, cwd: Path, source: str = AGENT) -> dict[str, Any]:
     """Handle a PostToolUse event: record the outcome so the flow is complete."""
     try:
         event = json.loads(stdin_text or "{}")
         action, label = action_from_event(event.get("tool_name", ""), event.get("tool_input") or {})
-        run_id = paths_for_run(cwd=cwd).active_file
-        run_id = run_id.read_text(encoding="utf-8").strip() if run_id.exists() else latest_run_id(cwd)
+        active = paths_for_run(cwd=cwd).active_file
+        run_id = active.read_text(encoding="utf-8").strip() if active.exists() else latest_run_id(cwd)
         paths = paths_for_run(run_id, cwd)
         if action.get("kind") == "tool_call":
-            append_event(paths, "mcp.tool.call.finished", {"agent": AGENT, "server_name": action.get("server")})
+            append_event(paths, "mcp.tool.call.finished", {"agent": source, "source": source, "server_name": action.get("server")})
         else:
-            append_event(paths, "command_finished", {"agent": AGENT, "command": label, "exit_code": 0})
+            append_event(paths, "command_finished", {"agent": source, "source": source, "command": label, "exit_code": 0})
     except Exception:
         pass
     return {}

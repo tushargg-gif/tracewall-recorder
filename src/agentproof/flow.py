@@ -64,13 +64,25 @@ def render_flow(flow: dict[str, Any]) -> str:
     mark = {"ok": "ok", "failed": "FAILED", "blocked": "BLOCKED", "pending": "pending", "unknown": "?"}
     for action in actions:
         status = action.get("status", "unknown")
+        when = _clock(action.get("timestamp"))
+        source = str(action.get("source") or "—")
         lines.append(
-            f"{action['seq']:>2}. [{action['kind']:<9}] {action['title']}  ({mark.get(status, status)})"
+            f"{action['seq']:>2}. {when}  {source:<12} [{action['kind']:<9}] {action['title']}  ({mark.get(status, status)})"
         )
         detail = action.get("detail")
         if detail:
-            lines.append(f"      {detail}")
+            lines.append(f"      {' ' * 21}{detail}")
     return "\n".join(lines)
+
+
+def _clock(iso: str | None) -> str:
+    if not iso:
+        return "--:--:--"
+    try:
+        from datetime import datetime
+        return datetime.fromisoformat(iso).strftime("%H:%M:%S")
+    except (ValueError, TypeError):
+        return "--:--:--"
 
 
 # --- action builders -------------------------------------------------------
@@ -89,6 +101,7 @@ def _command_action(event: dict[str, Any], payload: dict[str, Any]) -> dict[str,
     return {
         "kind": "command",
         "actor": payload.get("agent") or "shell",
+        "source": payload.get("source") or payload.get("agent") or "local",
         "title": _shorten(command_text) or "(empty command)",
         "detail": command_text if command_text != _shorten(command_text) else "",
         "status": status,
@@ -107,6 +120,7 @@ def _tool_action(event: dict[str, Any], payload: dict[str, Any], status: str) ->
     return {
         "kind": "tool_call",
         "actor": payload.get("agent") or server,
+        "source": payload.get("source") or payload.get("agent") or server,
         "title": f"{server}:{tool_name}",
         "detail": _compact(arguments),
         "status": status,

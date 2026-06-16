@@ -15,7 +15,8 @@
 </p>
 
 <p align="center">
-  <a href="docs/claude-code-quickstart.md">Claude Code Quickstart</a> &middot;
+  <a href="docs/claude-code-quickstart.md">Claude Code</a> &middot;
+  <a href="docs/codex-quickstart.md">Codex</a> &middot;
   <a href="docs/quickstart.md">Quickstart</a> &middot;
   <a href="vscode-extension/">VS Code extension</a> &middot;
   <a href="docs/north-star.md">North Star</a> &middot;
@@ -115,8 +116,9 @@ allow/block, policy view, and one-click hook install. See
 
 ## What it covers (and doesn't)
 
-- ✅ **Claude Code** — terminal CLI, VS Code extension, JetBrains (one hook covers all).
-- ⛔ **Codex / DeepSeek / Kimi** — not yet; they need a different mechanism (planned).
+- ✅ **Claude Code** — terminal CLI, VS Code extension, JetBrains (one hook covers all): bash, file reads, websearch, MCP, with allow/ask/deny.
+- ◑ **Codex** — Bash commands via Codex's hook (deny-only today) + MCP tool calls via the `agentproof mcp stdio` proxy. Narrower than Claude Code (no Read/WebSearch interception, no "ask" through the hook). See [docs/codex-quickstart.md](docs/codex-quickstart.md).
+- ⛔ **DeepSeek / Kimi** — not yet; need a different mechanism (planned, likely the OS-level layer).
 - 🛟 **Fail-open** — if the hook errors, the action is allowed (with a note); AgentProof can't brick your agent.
 - ⚠️ It's a guardrail against careless/unintended actions, **not** a containment
   boundary for a fully attacker-controlled agent.
