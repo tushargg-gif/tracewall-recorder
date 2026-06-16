@@ -23,9 +23,9 @@
   <a href="docs/audit-control-plane.md">Design</a>
 </p>
 
-> **Early alpha.** The Claude Code integration works and is tested; it has been
-> validated against Claude Code's documented hook contract. Validate it against
-> your own setup before trusting it in anger (see the quickstart smoke test).
+> **Early alpha.** Claude Code (full) and Codex (bash + MCP) integrations work and
+> are tested against each tool's documented hook contract. Validate against your own
+> setup before trusting it in anger (see the quickstart smoke tests).
 
 ---
 
@@ -69,8 +69,10 @@ Decisions, in order:
    allow the safe majority. No ML deciding "good vs bad" — a tiny deterministic
    denylist plus *your* decisions.
 
-Everything is recorded to a tamper-evident, hash-chained log, **attributed to the
-agent**, including blocked attempts.
+Every action is recorded to a tamper-evident, hash-chained log — **timestamped and
+attributed to its source** (`claude-code`, `codex`, …), including blocked attempts.
+Multiple agents share one ordered timeline, so you can see exactly who did what,
+when.
 
 ## The loop — policy by demonstration
 
@@ -93,9 +95,10 @@ still works.
 
 ```bash
 agentproof install-hook        # install the Claude Code hook (Pre/PostToolUse)
-agentproof hook                # the hook entrypoint (Claude Code calls this)
+agentproof install-codex       # install the Codex hook (.codex/hooks.json)
+agentproof hook                # the hook entrypoint (the agent calls this)
 
-agentproof flow                # the captured action timeline, attributed to the agent
+agentproof flow                # the captured timeline — timestamped, source-attributed (claude-code / codex)
 agentproof review              # allow/block review (browser); --json / --export also
 agentproof recommend --accept  # turn your verdicts into active policy
 agentproof policy              # every rule in force, in one place
@@ -104,9 +107,10 @@ agentproof verify              # check a run against its task contract
 agentproof report --print      # markdown / json trust report
 ```
 
-Also available: `init`, `start`, `run -- <cmd>`, `event`, `stop`, `verdict`,
-`mcp stdio` (proxy an MCP server), and the `Gateway` library for orchestrating
-agents directly.
+Also available: `init`, `start`, `run -- <cmd>`, `event`, `stop`, `verdict`, and
+`mcp stdio` (proxy + gate an MCP server). The `hook`/`mcp stdio` commands take
+`--source` (which agent) and `--ask-mode`; the `Gateway` library lets you broker
+orchestrated agents directly.
 
 ## VS Code
 
