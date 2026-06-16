@@ -22,7 +22,7 @@ def run_cli(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
     )
 
 
-def test_cli_records_universal_events_and_network_policy(tmp_path: Path):
+def test_cli_records_universal_events(tmp_path: Path):
     init = run_cli(tmp_path, "init")
     assert init.returncode == 0, init.stderr
     (tmp_path / ".agentproof" / "task.yml").write_text(
@@ -36,13 +36,6 @@ allowed_commands: []
 success_criteria:
   - public API fetched
 verification: {}
-network_policy:
-  allowed_domains:
-    - api.example.com
-  forbidden_domains:
-    - prod.example.com
-  require_https: true
-  max_requests: 2
 risk_level: medium
 human_approval_required: true
 """,
@@ -62,6 +55,5 @@ human_approval_required: true
     assert stop.returncode == 0, stop.stderr
     verify = run_cli(tmp_path, "verify", "--json")
     assert verify.returncode == 0, verify.stderr
-    assert '"network_allowed_domains"' in verify.stdout
     assert '"network.request": 1' in verify.stdout
     assert '"policy_violations": []' in verify.stdout

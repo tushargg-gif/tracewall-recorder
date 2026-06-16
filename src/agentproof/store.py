@@ -228,44 +228,6 @@ class Store:
             ).fetchall()
         return [approval_row_to_dict(row) for row in rows]
 
-    def create_mcp_proxy(self, proxy: dict[str, Any]) -> None:
-        with self.connect() as connection:
-            connection.execute(
-                """
-                INSERT INTO mcp_proxies (
-                    proxy_id, run_id, server_name, transport, target_url,
-                    headers_json, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    proxy["proxy_id"],
-                    proxy["run_id"],
-                    proxy["server_name"],
-                    proxy["transport"],
-                    proxy.get("target_url"),
-                    json.dumps(redact_secrets(proxy.get("headers") or {}), sort_keys=True),
-                    proxy["created_at"],
-                ),
-            )
-
-    def get_mcp_proxy(self, proxy_id: str) -> dict[str, Any] | None:
-        with self.connect() as connection:
-            row = connection.execute(
-                "SELECT * FROM mcp_proxies WHERE proxy_id = ?",
-                (proxy_id,),
-            ).fetchone()
-        if not row:
-            return None
-        return {
-            "proxy_id": row["proxy_id"],
-            "run_id": row["run_id"],
-            "server_name": row["server_name"],
-            "transport": row["transport"],
-            "target_url": row["target_url"],
-            "headers": json.loads(row["headers_json"] or "{}"),
-            "created_at": row["created_at"],
-        }
-
 
 def approval_row_to_dict(row: sqlite3.Row) -> dict[str, Any]:
     return {

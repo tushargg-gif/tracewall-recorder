@@ -12,7 +12,14 @@ import subprocess
 import time
 import uuid
 
+from agentproof import enforce as policy_engine
 from agentproof.contracts import TaskContract
+from agentproof.enforcement import (
+    DEFAULT_SENSITIVE_PATTERNS,
+    GuardProfile,
+    guard_backend,
+    run_guarded,
+)
 from agentproof.events import now_iso
 from agentproof.gitutils import git_diff, git_info, git_root
 from agentproof.store import default_store_for_project
@@ -78,7 +85,12 @@ def paths_for_run(run_id: str | None = None, cwd: Path | None = None) -> RunPath
     )
 
 
-def create_run(contract: TaskContract, agent: str, cwd: Path | None = None) -> dict[str, Any]:
+def create_run(
+    contract: TaskContract,
+    agent: str,
+    cwd: Path | None = None,
+    enforce: bool = False,
+) -> dict[str, Any]:
     project_root = discover_project_root(cwd)
     agentproof_dir = project_root / AGENTPROOF_DIR
     agentproof_dir.mkdir(parents=True, exist_ok=True)
@@ -108,7 +120,12 @@ def create_run(contract: TaskContract, agent: str, cwd: Path | None = None) -> d
         "project_root": str(project_root),
         "run_dir": str(paths.run_dir),
         "orchestrator": "",
-        "control_mode": "observe",
+        "control_mode": "enforce" if enforce else "observe",
+        "enforcement": {
+            "enabled": enforce,
+            "backend": guard_backend() if enforce else "none",
+            "sensitive_patterns": list(DEFAULT_SENSITIVE_PATTERNS),
+        },
         "start_time": now_iso(),
         "end_time": None,
         "duration_seconds": None,
@@ -119,7 +136,21 @@ def create_run(contract: TaskContract, agent: str, cwd: Path | None = None) -> d
     default_store_for_project(project_root).upsert_run(run)
     paths.events_file.touch()
     paths.active_file.write_text(run_id, encoding="utf-8")
-    append_event(paths, "run_started", {"agent": agent, "task_id": contract.task_id})
+    append_event(
+        paths,
+        "run_started",
+        {"agent": agent, "task_id": contract.task_id, "control_mode": run["control_mode"]},
+    )
+    if enforce:
+        append_event(
+            paths,
+            "enforcement_started",
+            {
+                "backend": run["enforcement"]["backend"],
+                "sensitive_patterns": run["enforcement"]["sensitive_patterns"],
+                "fail_closed": True,
+            },
+        )
     return run
 
 
@@ -188,21 +219,111 @@ def latest_run_id(cwd: Path | None = None) -> str:
     return runs[0].name
 
 
-def record_command(command: list[str], cwd: Path | None = None) -> int:
+def enforcement_profile_for_run(run: dict[str, Any], project_root: Path) -> GuardProfile:
+    """Build the sandbox profile for a run from its recorded enforcement config."""
+    config = run.get("enforcement") or {}
+    patterns = tuple(config.get("sensitive_patterns") or DEFAULT_SENSITIVE_PATTERNS)
+    return GuardProfile(project_root=project_root, patterns=patterns)
+
+
+def run_is_enforced(run: dict[str, Any]) -> bool:
+    return bool((run.get("enforcement") or {}).get("enabled")) or run.get("control_mode") == "enforce"
+
+
+def _apply_command_policy(paths: RunPaths, command_text: str, policy_mode: str) -> bool:
+    """Evaluate the command against the active policy. Returns True if blocked."""
+    policy = policy_engine.load_active_policy(paths.agentproof_dir)
+    decision = policy_engine.evaluate_action(
+        policy_engine.action_from_command(command_text), policy
+    )
+    if decision["decision"] == "none":
+        return False
+    outcome = policy_engine.enforced_outcome(decision["decision"], policy_mode)
+    append_event(
+        paths,
+        "policy.decision",
+        {
+            "action": command_text,
+            "match_kind": "command",
+            "decision": decision["decision"],
+            "rule_id": decision["rule_id"],
+            "reason": decision["reason"],
+            "mode": policy_mode,
+            "outcome": outcome,
+        },
+    )
+    if outcome == "blocked":
+        append_event(
+            paths,
+            "policy.enforcement",
+            {"command": command_text, "rule_id": decision["rule_id"],
+             "reason": decision["reason"], "action_taken": "blocked"},
+        )
+        print(
+            f"AgentProof: BLOCKED by policy [{decision['rule_id']}] — {decision['reason']}",
+            file=os.sys.stderr,
+        )
+        return True
+    if outcome == "alerted":
+        print(
+            f"AgentProof: ALERT [{decision['rule_id']}] — {decision['reason']} (running anyway; alert mode)",
+            file=os.sys.stderr,
+        )
+    return False
+
+
+def record_command(
+    command: list[str],
+    cwd: Path | None = None,
+    enforce: bool | None = None,
+    policy_mode: str = "observe",
+) -> int:
     if not command:
         raise ValueError("No command provided.")
     run_id = active_run_id(cwd)
     paths = paths_for_run(run_id, cwd)
+    run = read_json(paths.run_file)
+    enforcing = run_is_enforced(run) if enforce is None else enforce
     started = time.time()
     command_text = shlex.join(command)
-    append_event(paths, "command_started", {"command": command_text})
-    result = subprocess.run(
-        command,
-        cwd=Path(cwd or Path.cwd()),
-        text=True,
-        capture_output=True,
-        check=False,
-    )
+
+    # Policy enforcement at the command chokepoint (active learned policy).
+    blocked = _apply_command_policy(paths, command_text, policy_mode)
+    if blocked:
+        return 126
+
+    append_event(paths, "command_started", {"command": command_text, "enforced": enforcing})
+
+    if enforcing:
+        profile = enforcement_profile_for_run(run, paths.project_root)
+        guarded = run_guarded(
+            command,
+            profile,
+            cwd=Path(cwd or Path.cwd()),
+            require_enforcement=True,
+        )
+        result = subprocess.CompletedProcess(
+            command, guarded.exit_code, guarded.stdout, guarded.stderr
+        )
+        append_event(
+            paths,
+            "enforcement_decision",
+            {
+                "command": command_text,
+                "backend": guarded.backend,
+                "enforced": guarded.enforced,
+                "action_taken": "blocked" if guarded.blocked else "allowed",
+                "exit_code": guarded.exit_code,
+            },
+        )
+    else:
+        result = subprocess.run(
+            command,
+            cwd=Path(cwd or Path.cwd()),
+            text=True,
+            capture_output=True,
+            check=False,
+        )
     duration = round(time.time() - started, 3)
     command_id = f"cmd_{int(started)}_{uuid.uuid4().hex[:6]}"
     output_dir = paths.run_dir / "command_outputs"
@@ -217,6 +338,7 @@ def record_command(command: list[str], cwd: Path | None = None) -> int:
         "argv": command,
         "exit_code": result.returncode,
         "duration_seconds": duration,
+        "enforced": enforcing,
         "stdout_path": str(stdout_path.relative_to(paths.project_root)),
         "stderr_path": str(stderr_path.relative_to(paths.project_root)),
     }

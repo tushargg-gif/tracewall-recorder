@@ -35,10 +35,7 @@ classifiers = [
   "Topic :: Software Development :: Quality Assurance",
 ]
 dependencies = [
-  "fastapi>=0.115",
-  "httpx>=0.27",
   "PyYAML>=6.0.1",
-  "uvicorn>=0.30",
 ]
 
 [project.optional-dependencies]

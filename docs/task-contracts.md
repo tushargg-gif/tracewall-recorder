@@ -65,15 +65,9 @@ Plain-language expectations for the work.
 
 Verifier hints, such as required test commands.
 
-`network_policy`, `browser_policy`, `mcp_policy`
-
-Optional policy sections for non-file evidence.
-
 ## Guidance
 
 - Keep allowed paths small.
 - Include the exact tests the agent should run.
 - Mark secrets, infra, deployment, and lock files as forbidden when appropriate.
-- Add expected data or artifacts when the task creates output files.
-- Use MCP policy fields when an orchestrator can call tools.
 

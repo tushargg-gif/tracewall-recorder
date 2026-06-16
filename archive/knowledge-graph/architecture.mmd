@@ -1,0 +1,28 @@
+%% Architectural layer dependencies
+graph TD
+  capture([capture])
+  enforcement([enforcement])
+  interface([interface])
+  orchestration([orchestration])
+  policy([policy])
+  reporting([reporting])
+  tests([tests])
+  verification([verification])
+  capture -->|1| enforcement
+  capture -->|3| policy
+  enforcement -->|1| policy
+  interface -->|6| capture
+  interface -->|4| policy
+  interface -->|2| reporting
+  interface -->|2| verification
+  policy -->|1| capture
+  reporting -->|1| capture
+  reporting -->|1| verification
+  tests -->|5| capture
+  tests -->|1| enforcement
+  tests -->|2| interface
+  tests -->|1| orchestration
+  tests -->|5| policy
+  tests -->|2| verification
+  verification -->|5| capture
+  verification -->|6| policy

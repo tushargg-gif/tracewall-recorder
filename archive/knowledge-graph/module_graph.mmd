@@ -1,0 +1,85 @@
+%% Module import graph - AgentProof Recorder
+graph LR
+  subgraph capture
+    agentproof_events[events]
+    agentproof_gitutils[gitutils]
+    agentproof_mcp_stdio[mcp_stdio]
+    agentproof_paths[paths]
+    agentproof_recorder[recorder]
+    agentproof_store[store]
+  end
+  subgraph enforcement
+    agentproof_enforcement[enforcement]
+  end
+  subgraph interface
+    agentproof___main__[__main__]
+    agentproof_cli[cli]
+    agentproof_sidecar[sidecar]
+  end
+  subgraph orchestration
+    agentproof_orchestration[orchestration]
+  end
+  subgraph other
+    agentproof___init__[__init__]
+  end
+  subgraph policy
+    agentproof_checks[checks]
+    agentproof_contracts[contracts]
+    agentproof_mcp_policy[mcp_policy]
+    agentproof_mcp_targets[mcp_targets]
+    agentproof_policy[policy]
+    agentproof_sensitive[sensitive]
+  end
+  subgraph reporting
+    agentproof_reports[reports]
+  end
+  subgraph verification
+    agentproof_plugins[plugins]
+    agentproof_scoring[scoring]
+    agentproof_verifier[verifier]
+  end
+  agentproof___main__ --> agentproof_cli
+  agentproof_cli --> agentproof_recorder
+  agentproof_cli --> agentproof_mcp_stdio
+  agentproof_cli --> agentproof_verifier
+  agentproof_cli --> agentproof_contracts
+  agentproof_cli --> agentproof_sidecar
+  agentproof_cli --> agentproof_reports
+  agentproof_cli --> agentproof_events
+  agentproof_enforcement --> agentproof_sensitive
+  agentproof_mcp_policy --> agentproof_contracts
+  agentproof_mcp_policy --> agentproof_events
+  agentproof_mcp_stdio --> agentproof_recorder
+  agentproof_mcp_stdio --> agentproof_mcp_policy
+  agentproof_mcp_stdio --> agentproof_contracts
+  agentproof_mcp_stdio --> agentproof_store
+  agentproof_mcp_stdio --> agentproof_events
+  agentproof_plugins --> agentproof_paths
+  agentproof_plugins --> agentproof_recorder
+  agentproof_plugins --> agentproof_contracts
+  agentproof_plugins --> agentproof_checks
+  agentproof_recorder --> agentproof_gitutils
+  agentproof_recorder --> agentproof_contracts
+  agentproof_recorder --> agentproof_enforcement
+  agentproof_recorder --> agentproof_store
+  agentproof_recorder --> agentproof_events
+  agentproof_reports --> agentproof_recorder
+  agentproof_reports --> agentproof_verifier
+  agentproof_sidecar --> agentproof_mcp_targets
+  agentproof_sidecar --> agentproof_recorder
+  agentproof_sidecar --> agentproof_verifier
+  agentproof_sidecar --> agentproof_store
+  agentproof_sidecar --> agentproof_mcp_policy
+  agentproof_sidecar --> agentproof_contracts
+  agentproof_sidecar --> agentproof_reports
+  agentproof_sidecar --> agentproof_events
+  agentproof_store --> agentproof_events
+  agentproof_verifier --> agentproof_recorder
+  agentproof_verifier --> agentproof_policy
+  agentproof_verifier --> agentproof_checks
+  agentproof_verifier --> agentproof_scoring
+  agentproof_verifier --> agentproof_contracts
+  agentproof_verifier --> agentproof_store
+  agentproof_verifier --> agentproof_plugins
+  agentproof_verifier --> agentproof_sensitive
+  agentproof_verifier --> agentproof_events

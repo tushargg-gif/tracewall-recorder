@@ -1,266 +1,144 @@
-# AgentProof Recorder
+# AgentProof
 
-<p align="center"><strong>Tamper-evident evidence for AI agent work.</strong></p>
+<p align="center"><strong>A guardrail in front of your coding agent.</strong></p>
 
 <p align="center">
-  AgentProof Recorder verifies whether agents followed policy, even when an agent claims it did.
+  Every action your agent takes — reading files, running commands, web fetches,
+  MCP/tool calls — passes through AgentProof first: recorded, risk-checked, and
+  <strong>allowed, blocked, or escalated to you</strong>. It learns what's safe from
+  your own allow/block decisions, so it gets quieter over time.
 </p>
 
 <p align="center">
-  <a href="https://github.com/tushargg-gif/AgentProof-Recorder/actions/workflows/tests.yml"><img alt="tests" src="https://github.com/tushargg-gif/AgentProof-Recorder/actions/workflows/tests.yml/badge.svg"></a>
   <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-Apache--2.0-blue.svg"></a>
   <a href="pyproject.toml"><img alt="python" src="https://img.shields.io/badge/python-3.10%2B-blue.svg"></a>
-  <a href="https://github.com/tushargg-gif/AgentProof-Recorder/stargazers"><img alt="github stars" src="https://img.shields.io/github/stars/tushargg-gif/AgentProof-Recorder?style=social"></a>
 </p>
 
 <p align="center">
-  <a href="https://raw.githubusercontent.com/tushargg-gif/AgentProof-Recorder/main/assets/demo.mp4">Demo Video</a> &middot;
-  <a href="docs/quickstart.md">Docs</a> &middot;
+  <a href="docs/claude-code-quickstart.md">Claude Code Quickstart</a> &middot;
   <a href="docs/quickstart.md">Quickstart</a> &middot;
-  <a href="docs/examples.md">Examples</a> &middot;
-  <a href="docs/security-model.md">Security Model</a> &middot;
-  <a href="ROADMAP.md">Roadmap</a> &middot;
-  <a href="CONTRIBUTING.md">Contributing</a>
+  <a href="vscode-extension/">VS Code extension</a> &middot;
+  <a href="docs/north-star.md">North Star</a> &middot;
+  <a href="docs/audit-control-plane.md">Design</a>
 </p>
 
-AgentProof Recorder is a tamper-evident evidence layer for AI agent work. It records what agents actually did - file changes, commands, tests, policy decisions, MCP/tool calls, and final responses - then verifies that evidence against the task policy.
+> **Early alpha.** The Claude Code integration works and is tested; it has been
+> validated against Claude Code's documented hook contract. Validate it against
+> your own setup before trusting it in anger (see the quickstart smoke test).
 
-> Early alpha: AgentProof Recorder is designed for local experimentation, agent-run evidence capture, and verification workflows. It does not claim to make local agents tamper-proof.
->
-> Demo note: the Rogue Agent demo uses scripted Python agents for reproducibility. It does not call an LLM to choose policy or perform work. The real test is AgentProof Recorder's evidence capture, tamper-evident event chain, attribution, verification, and report generation.
+---
 
-## Demo: Rogue Agent Caught
+## The problem
 
-<p align="center">
-  <a href="https://raw.githubusercontent.com/tushargg-gif/AgentProof-Recorder/main/assets/demo.mp4">
-    <img src="assets/demo.gif" alt="AgentProof Recorder demo: Rogue Agent Caught">
-  </a>
-</p>
+Coding agents (Claude Code, Codex, …) read `.env` like it's a README, install
+packages, web-search, and call MCP tools — autonomously. Nobody is going to audit
+every command, file read, and tool call. You need a layer that lets the agent move
+fast on the safe 90% and stops or escalates the rest.
 
-[Open the full MP4 demo](https://raw.githubusercontent.com/tushargg-gif/AgentProof-Recorder/main/assets/demo.mp4)
+## The 30-second version (Claude Code)
 
-In the demo, a scripted Master Agent delegates documentation work to several scripted worker agents. Most workers stay inside their assigned scopes.
+```bash
+pip install -e .          # from this repo
+agentproof init           # creates .agentproof/ in your project
+agentproof install-hook   # wires AgentProof into .claude/settings.json
+```
 
-Then the Rogue Agent secretly changes `package.json`, while claiming no risky files changed. AgentProof checks the actual before-and-after file evidence, attributes `package.json` to the Rogue Agent, and returns:
+Restart Claude Code (terminal **or** VS Code — same engine). Now, with no further
+configuration:
+
+| The agent tries to… | AgentProof |
+|---|---|
+| read `.env` / `*.pem` | **denies** it |
+| `pip install …`, fetch a URL, `rm -rf …`, a consequential MCP tool | **asks you** first |
+| `ls`, read `README.md`, list issues | **allows** it silently |
+
+Full walkthrough + smoke test: **[docs/claude-code-quickstart.md](docs/claude-code-quickstart.md)**.
+
+## How it works
+
+AgentProof is the **gateway** the agent's actions flow through. As a Claude Code
+`PreToolUse` hook it sees every tool call (Bash, Read/Write, WebSearch/WebFetch,
+MCP) — the file path, the command, the args — *before* it runs, and returns
+**allow / ask / deny**.
+
+Decisions, in order:
+
+1. **Your learned policy wins** — anything you've allowed or blocked is applied first.
+2. Otherwise **safe defaults**: deny secret-file reads; ask on the genuinely risky;
+   allow the safe majority. No ML deciding "good vs bad" — a tiny deterministic
+   denylist plus *your* decisions.
+
+Everything is recorded to a tamper-evident, hash-chained log, **attributed to the
+agent**, including blocked attempts.
+
+## The loop — policy by demonstration
+
+```
+record  →  review  →  learn  →  enforce  →  catch it next time
+(gateway   (allow/    (rules    (observe→
+ captures)  block      with      alert→
+            timeline)  reasons)  block)
+```
+
+You never hand-write policy. Review a run, mark **allow/block**, and AgentProof
+drafts reusable rules *with reasons* — so the next time, what you blocked is denied
+automatically. The more you review, the more autonomy the agent earns, safely.
+
+Rules are **precise**: blocking `cat .env` learns "block reading secret files
+(.env, *.pem, …)", not "ban the `cat` binary" — so legitimate `cat README.md`
+still works.
+
+## CLI
+
+```bash
+agentproof install-hook        # install the Claude Code hook (Pre/PostToolUse)
+agentproof hook                # the hook entrypoint (Claude Code calls this)
+
+agentproof flow                # the captured action timeline, attributed to the agent
+agentproof review              # allow/block review (browser); --json / --export also
+agentproof recommend --accept  # turn your verdicts into active policy
+agentproof policy              # every rule in force, in one place
+
+agentproof verify              # check a run against its task contract
+agentproof report --print      # markdown / json trust report
+```
+
+Also available: `init`, `start`, `run -- <cmd>`, `event`, `stop`, `verdict`,
+`mcp stdio` (proxy an MCP server), and the `Gateway` library for orchestrating
+agents directly.
+
+## VS Code
+
+A panel to review and govern the agent's actions inside the editor — timeline,
+allow/block, policy view, and one-click hook install. See
+[`vscode-extension/`](vscode-extension/).
+
+## What it covers (and doesn't)
+
+- ✅ **Claude Code** — terminal CLI, VS Code extension, JetBrains (one hook covers all).
+- ⛔ **Codex / DeepSeek / Kimi** — not yet; they need a different mechanism (planned).
+- 🛟 **Fail-open** — if the hook errors, the action is allowed (with a note); AgentProof can't brick your agent.
+- ⚠️ It's a guardrail against careless/unintended actions, **not** a containment
+  boundary for a fully attacker-controlled agent.
+
+## Repository layout
 
 ```text
-Final verdict: FAIL
-Violating agent: Rogue Agent
-Changed file: package.json
-```
-
-Run the same local demo:
-
-```bash
-python3 agent-demo/master_agent_demo.py --demo
-```
-
-Generated evidence:
-
-- [agent-demo/generated/policy.json](agent-demo/generated/policy.json)
-- [agent-demo/generated/events.jsonl](agent-demo/generated/events.jsonl)
-- [agent-demo/generated/agentproof_report.json](agent-demo/generated/agentproof_report.json)
-
-## Why This Matters
-
-AI coding agents can claim success while:
-
-- skipping required tests
-- touching forbidden files
-- modifying unrelated paths
-- changing dependency files
-- making unsafe tool calls
-- producing output without evidence
-
-The bottleneck is moving from writing code to verifying agent work. AgentProof Recorder gives reviewers local evidence before code moves into review or merge.
-
-It does not replace CI, tests, or code review. It makes the handoff easier to inspect.
-
-## What AgentProof Recorder Does
-
-AgentProof Recorder records:
-
-- file changes
-- commands
-- tests
-- final response
-- policy violations
-- MCP/tool calls
-- tamper-evident local event chain
-
-Then it verifies the run against a task contract and generates a trust report.
-
-```text
-task contract -> agent run -> evidence capture -> verification -> trust report
-```
-
-## 60-Second Example
-
-```bash
-git clone https://github.com/tushargg-gif/AgentProof-Recorder
-cd AgentProof-Recorder
-pip install -e ".[dev]"
-
-agentproof init
-agentproof start --agent "claude-code"
-agentproof run -- pytest
-agentproof stop --final-response "Fixed auth bug"
-agentproof verify
-agentproof report --print
-```
-
-The package keeps the stable CLI command:
-
-```bash
-agentproof --help
-```
-
-It also installs the optional alias:
-
-```bash
-agentproof-recorder --help
-```
-
-## Example Report
-
-```text
-AgentProof Recorder Report
-
-Verdict: Partial Pass
-Score: 82/100
-Risk: medium
-
-Files changed: 2
-Commands recorded: 1
-Tests detected: yes
-Policy violations: 0
-Event chain: passed
-Secret redaction: passed
-
-Recommendation:
-Safe for human review. Do not auto-merge without checking the diff.
-```
-
-A bad-agent example report is available at [report.md](report.md), with structured examples under [examples/](examples/). The local orchestrator demo publishes a current test-harness result at [agent-demo/RESULTS.md](agent-demo/RESULTS.md).
-
-## Core Concepts
-
-**Task contract**
-
-A YAML file that says what the agent is allowed to touch, which commands count as evidence, and what success means.
-
-**Evidence recorder**
-
-Local run capture for file changes, command executions, final responses, universal events, and MCP/tool activity.
-
-**Verification engine**
-
-Checks the recorded run against the task contract and produces pass, partial pass, or fail results.
-
-**Trust report**
-
-Markdown and JSON output that summarizes score, risk, policy violations, changed files, commands, and observed events.
-
-## What It Can Catch Today
-
-- forbidden path changes
-- unrelated file changes
-- secret-like file changes
-- dependency file changes
-- missing or failed test commands
-- bad data or artifact outputs
-- unsafe network/browser events
-- forbidden MCP tools
-- MCP targets that point at local/private networks
-- local event-log tampering
-
-## Local Sidecar And MCP Proxy
-
-AgentProof Recorder can run as a local sidecar for a master agent or orchestrator:
-
-```bash
-agentproof sidecar --host 127.0.0.1 --port 8797 --root .agentproof
-```
-
-For sidecar APIs exposed beyond localhost, use an auth token:
-
-```bash
-agentproof sidecar --host 0.0.0.0 --port 8797 --auth-token "$AGENTPROOF_TOKEN"
-```
-
-MCP HTTP proxy targets are validated to reduce SSRF/local-network forwarding risk. You can also restrict proxy registration to known hosts:
-
-```bash
-agentproof sidecar --auth-token test --allowed-mcp-target-host mcp.example.com
-```
-
-Read more in [docs/mcp-proxy.md](docs/mcp-proxy.md) and [docs/security-model.md](docs/security-model.md).
-
-## Documentation
-
-- [Quickstart](docs/quickstart.md)
-- [Task contracts](docs/task-contracts.md)
-- [Verification model](docs/verification-model.md)
-- [MCP proxy](docs/mcp-proxy.md)
-- [Security model](docs/security-model.md)
-- [Limitations](docs/limitations.md)
-- [Examples](docs/examples.md)
-- [Orchestrator demo results](agent-demo/RESULTS.md)
-
-## Project Status
-
-AgentProof Recorder is early alpha. The current focus is a useful local developer workflow:
-
-- record coding-agent runs
-- verify work against explicit task contracts
-- produce evidence reports for human review
-- support MCP proxy evidence capture for orchestrators
-
-See [ROADMAP.md](ROADMAP.md) for planned work.
-
-## Repository Layout
-
-```text
-src/agentproof/        Python package. Import name stays agentproof.
+src/agentproof/        Python package (gateway, hook, policy engine, review, recommender).
+vscode-extension/      VS Code review panel (TypeScript).
 tests/                 Automated tests.
-docs/                  User and contributor documentation.
-examples/              Good, bad, and MCP-focused example runs.
-agent-demo/            Orchestrator demo test harness and publishable evidence.
-.github/               CI, issue templates, and PR template.
-.agentproof/           Local runtime evidence directory, created by the CLI.
+docs/                  Quickstarts, North Star, design doc, security model.
+archive/               Parked experiments. Not part of the package.
+.agentproof/           Per-project runtime: runs, policy.json, verdicts. Created by the CLI.
 ```
 
-## What AgentProof Recorder Is Not
+## Status
 
-AgentProof Recorder is not:
-
-- a coding agent
-- a replacement for CI
-- a replacement for code review
-- a full sandbox
-- a hosted observability platform
-- an insurance product
-- a guarantee that agent output is correct
-- tamper-proof storage
-
-It is a local evidence and verification layer for agent work.
-
-## Contributing
-
-Contributions are welcome while the project is still small and sharp. Good first areas:
-
-- more verifier checks
-- adversarial bad-agent examples
-- report readability
-- MCP policy coverage
-- GitHub/GitLab workflow integrations
-- docs and task-contract templates
-
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
-
-## Security
-
-Do not open a public issue for sensitive vulnerabilities. Read [SECURITY.md](SECURITY.md) for reporting guidance.
+Alpha, Mac-first, intent-layer (it governs what the agent *does* through brokered
+tools; the OS-level "ground truth" layer is future work). The record → review →
+learn → enforce loop works end to end, including against a real LLM agent under live
+enforcement. See [docs/north-star.md](docs/north-star.md) for where this is going and
+[docs/audit-control-plane.md](docs/audit-control-plane.md) for the architecture.
 
 ## License
 
