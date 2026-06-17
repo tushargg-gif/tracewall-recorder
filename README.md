@@ -15,16 +15,17 @@
 </p>
 
 <p align="center">
-  <a href="docs/claude-code-quickstart.md">Claude Code Quickstart</a> &middot;
+  <a href="docs/claude-code-quickstart.md">Claude Code</a> &middot;
+  <a href="docs/codex-quickstart.md">Codex</a> &middot;
   <a href="docs/quickstart.md">Quickstart</a> &middot;
   <a href="vscode-extension/">VS Code extension</a> &middot;
   <a href="docs/north-star.md">North Star</a> &middot;
   <a href="docs/audit-control-plane.md">Design</a>
 </p>
 
-> **Early alpha.** The Claude Code integration works and is tested; it has been
-> validated against Claude Code's documented hook contract. Validate it against
-> your own setup before trusting it in anger (see the quickstart smoke test).
+> **Early alpha.** Claude Code (full) and Codex (bash + MCP) integrations work and
+> are tested against each tool's documented hook contract. Validate against your own
+> setup before trusting it in anger (see the quickstart smoke tests).
 
 ---
 
@@ -68,8 +69,10 @@ Decisions, in order:
    allow the safe majority. No ML deciding "good vs bad" — a tiny deterministic
    denylist plus *your* decisions.
 
-Everything is recorded to a tamper-evident, hash-chained log, **attributed to the
-agent**, including blocked attempts.
+Every action is recorded to a tamper-evident, hash-chained log — **timestamped and
+attributed to its source** (`claude-code`, `codex`, …), including blocked attempts.
+Multiple agents share one ordered timeline, so you can see exactly who did what,
+when.
 
 ## The loop — policy by demonstration
 
@@ -92,9 +95,10 @@ still works.
 
 ```bash
 agentproof install-hook        # install the Claude Code hook (Pre/PostToolUse)
-agentproof hook                # the hook entrypoint (Claude Code calls this)
+agentproof install-codex       # install the Codex hook (.codex/hooks.json)
+agentproof hook                # the hook entrypoint (the agent calls this)
 
-agentproof flow                # the captured action timeline, attributed to the agent
+agentproof flow                # the captured timeline — timestamped, source-attributed (claude-code / codex)
 agentproof review              # allow/block review (browser); --json / --export also
 agentproof recommend --accept  # turn your verdicts into active policy
 agentproof policy              # every rule in force, in one place
@@ -103,9 +107,10 @@ agentproof verify              # check a run against its task contract
 agentproof report --print      # markdown / json trust report
 ```
 
-Also available: `init`, `start`, `run -- <cmd>`, `event`, `stop`, `verdict`,
-`mcp stdio` (proxy an MCP server), and the `Gateway` library for orchestrating
-agents directly.
+Also available: `init`, `start`, `run -- <cmd>`, `event`, `stop`, `verdict`, and
+`mcp stdio` (proxy + gate an MCP server). The `hook`/`mcp stdio` commands take
+`--source` (which agent) and `--ask-mode`; the `Gateway` library lets you broker
+orchestrated agents directly.
 
 ## VS Code
 
@@ -115,8 +120,9 @@ allow/block, policy view, and one-click hook install. See
 
 ## What it covers (and doesn't)
 
-- ✅ **Claude Code** — terminal CLI, VS Code extension, JetBrains (one hook covers all).
-- ⛔ **Codex / DeepSeek / Kimi** — not yet; they need a different mechanism (planned).
+- ✅ **Claude Code** — terminal CLI, VS Code extension, JetBrains (one hook covers all): bash, file reads, websearch, MCP, with allow/ask/deny.
+- ◑ **Codex** — Bash commands via Codex's hook (deny-only today) + MCP tool calls via the `agentproof mcp stdio` proxy. Narrower than Claude Code (no Read/WebSearch interception, no "ask" through the hook). See [docs/codex-quickstart.md](docs/codex-quickstart.md).
+- ⛔ **DeepSeek / Kimi** — not yet; need a different mechanism (planned, likely the OS-level layer).
 - 🛟 **Fail-open** — if the hook errors, the action is allowed (with a note); AgentProof can't brick your agent.
 - ⚠️ It's a guardrail against careless/unintended actions, **not** a containment
   boundary for a fully attacker-controlled agent.

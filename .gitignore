@@ -6,3 +6,7 @@ __pycache__/
 *.egg-info/
 .agentproof/
 agents-test/
+
+# Locally-generated agent hook config (contains absolute, per-machine paths)
+.claude/
+.codex/

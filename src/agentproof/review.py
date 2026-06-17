@@ -340,7 +340,8 @@ function render(){
       <div class="card r-${a.risk} ${d?('on-'+d):''}">
         <div class="chead">
           <span class="stepno">STEP ${a.seq}</span>
-          <span class="agent">${esc(a.actor)}</span>
+          <span class="agent">${esc(a.source||a.actor)}</span>
+          ${a.actor && a.actor!==(a.source||a.actor) ? `<span class="kind">${esc(a.actor)}</span>` : ''}
           <span class="kind ${a.kind}">${a.kind.replace('_',' ')}</span>
           <span class="ctitle">${esc(a.title)}</span>
           <span class="chip ${a.risk}">${a.risk} risk</span>

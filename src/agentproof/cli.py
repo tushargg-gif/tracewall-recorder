@@ -111,11 +111,19 @@ def build_parser() -> argparse.ArgumentParser:
     policy.add_argument("--json", action="store_true", dest="json_policy", help="Print the active policy as JSON.")
     policy.add_argument("--export", default=None, metavar="PATH", help="Write a standalone policies HTML page.")
 
-    hook = subcommands.add_parser("hook", help="Claude Code hook entrypoint (reads a tool event on stdin).")
+    hook = subcommands.add_parser("hook", help="Coding-agent hook entrypoint (reads a tool event on stdin).")
     hook.add_argument("--post", action="store_true", help="Record a PostToolUse outcome instead of gating.")
+    hook.add_argument("--ask-mode", choices=["native", "deny", "defer"], default="native",
+                      help="How to handle 'ask' decisions: native (Claude Code), deny, or defer to the host's approval (Codex).")
+    hook.add_argument("--source", default="claude-code", help="Which coding agent this hook serves (claude-code, codex, …); recorded on every action.")
 
     install_hook = subcommands.add_parser("install-hook", help="Install AgentProof as a Claude Code hook (.claude/settings.json).")
     install_hook.add_argument("--global", dest="global_install", action="store_true", help="Install to ~/.claude instead of the project.")
+
+    install_codex = subcommands.add_parser("install-codex", help="Install AgentProof as a Codex hook (.codex/hooks.json).")
+    install_codex.add_argument("--global", dest="global_install", action="store_true", help="Install to ~/.codex instead of the project.")
+    install_codex.add_argument("--ask-mode", choices=["deny", "defer"], default="defer",
+                               help="Codex hooks can't 'ask': deny risky actions, or defer to Codex's own approval (default).")
 
     recommend = subcommands.add_parser("recommend", help="Recommend policy rules (with reasons) from the review verdicts.")
     recommend.add_argument("--run-id", default=None)
@@ -124,9 +132,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     mcp = subcommands.add_parser("mcp", help="Run MCP proxy modes.")
     mcp_subcommands = mcp.add_subparsers(dest="mcp_command", required=True)
-    stdio = mcp_subcommands.add_parser("stdio", help="Proxy a stdio MCP server and record its tool calls.")
-    stdio.add_argument("--run-id", required=True)
+    stdio = mcp_subcommands.add_parser("stdio", help="Proxy a stdio MCP server: record + policy-gate its tool calls.")
+    stdio.add_argument("--run-id", default=None, help="Attach to a run (defaults to the active run, created if needed).")
     stdio.add_argument("--server-name", required=True)
+    stdio.add_argument("--ask-mode", choices=["native", "deny", "defer"], default="defer",
+                       help="How to treat 'ask' decisions for tool calls (proxy can't prompt mid-stream).")
+    stdio.add_argument("--source", default="codex", help="Which coding agent is calling through this proxy (recorded on every tool call).")
     stdio.add_argument("server_command", nargs=argparse.REMAINDER)
 
     return parser
@@ -162,6 +173,8 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_hook(args)
         if args.command == "install-hook":
             return cmd_install_hook(args)
+        if args.command == "install-codex":
+            return cmd_install_codex(args)
         if args.command == "recommend":
             return cmd_recommend(args)
         if args.command == "mcp":
@@ -281,8 +294,53 @@ def cmd_verdict(args: argparse.Namespace) -> int:
 
 def cmd_hook(args: argparse.Namespace) -> int:
     stdin_text = sys.stdin.read()
-    out = run_post(stdin_text, Path.cwd()) if args.post else run_pre(stdin_text, Path.cwd())
+    out = run_post(stdin_text, Path.cwd(), source=args.source) if args.post \
+        else run_pre(stdin_text, Path.cwd(), ask_mode=args.ask_mode, source=args.source)
     print(json.dumps(out))
+    return 0
+
+
+def cmd_install_codex(args: argparse.Namespace) -> int:
+    base = Path.home() if args.global_install else Path.cwd()
+    codex_dir = base / ".codex"
+    codex_dir.mkdir(parents=True, exist_ok=True)
+    command = f"{sys.executable} -m agentproof hook --source codex --ask-mode {args.ask_mode}"
+
+    # 1. hooks.json — Codex PreToolUse currently only fires for Bash
+    hooks_path = codex_dir / "hooks.json"
+    data: dict = {}
+    if hooks_path.exists():
+        try:
+            data = json.loads(hooks_path.read_text(encoding="utf-8"))
+        except (ValueError, OSError):
+            data = {}
+    hooks = data.setdefault("hooks", {})
+
+    def ensure(event: str, cmd: str) -> None:
+        groups = hooks.setdefault(event, [])
+        for group in groups:
+            for h in group.get("hooks", []):
+                if "agentproof" in str(h.get("command", "")):
+                    return
+        groups.append({"matcher": "Bash", "hooks": [{"type": "command", "command": cmd}]})
+
+    ensure("PreToolUse", command)
+    ensure("PostToolUse", command + " --post")
+    hooks_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+    # 2. config.toml — hooks are behind a feature flag
+    config_path = codex_dir / "config.toml"
+    config_text = config_path.read_text(encoding="utf-8") if config_path.exists() else ""
+    if "codex_hooks" not in config_text:
+        block = "\n[features]\ncodex_hooks = true\n" if config_text and not config_text.endswith("\n") else "[features]\ncodex_hooks = true\n"
+        config_path.write_text((config_text + ("\n" if config_text and not config_text.endswith("\n") else "") + block).lstrip("\n"), encoding="utf-8")
+
+    print(f"Installed AgentProof Codex hook → {hooks_path}")
+    print(f"Enabled codex_hooks in → {config_path}")
+    print(f"ask-mode = {args.ask_mode}  (Codex hooks can't 'ask'; deny = block risky, defer = let Codex prompt)")
+    print("Note: Codex's PreToolUse only intercepts Bash today — it catches `cat .env`, installs, etc.,")
+    print("but not the Read/WebSearch tools. Route MCP tool calls through `agentproof mcp stdio` for those.")
+    print("Restart Codex to load it.")
     return 0
 
 
@@ -296,7 +354,7 @@ def cmd_install_hook(args: argparse.Namespace) -> int:
             data = json.loads(settings.read_text(encoding="utf-8"))
         except (ValueError, OSError):
             data = {}
-    command = f"{sys.executable} -m agentproof hook"
+    command = f"{sys.executable} -m agentproof hook --source claude-code"
     hooks = data.setdefault("hooks", {})
 
     def ensure(event: str, cmd: str) -> None:
@@ -352,5 +410,6 @@ def cmd_mcp(args: argparse.Namespace) -> int:
         command = list(args.server_command)
         if command and command[0] == "--":
             command = command[1:]
-        return run_stdio_proxy(args.run_id, args.server_name, command, cwd=Path.cwd())
+        return run_stdio_proxy(args.server_name, command, cwd=Path.cwd(),
+                               run_id=args.run_id, ask_mode=args.ask_mode, source=args.source)
     raise ValueError(f"Unknown MCP command: {args.mcp_command}")
