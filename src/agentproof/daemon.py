@@ -38,6 +38,7 @@ import socketserver
 import subprocess
 import sys
 import threading
+from urllib.parse import parse_qs, urlparse
 
 from agentproof import enforce, hook
 from agentproof.events import now_iso
@@ -185,15 +186,62 @@ class _HTTPHandler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _send_raw(self, code: int, ctype: str, body: bytes) -> None:
+        self.send_response(code)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _review_target(self, query: dict[str, list[str]]) -> tuple[str | None, Path]:
+        """Resolve which project + run a review request is about. The daemon is
+        machine-global, so the project (`cwd`) and `run` come from the query; the
+        run defaults to the project's latest."""
+        cwd = Path(query.get("cwd", ["."])[0])
+        run = query.get("run", [None])[0]
+        if not run:
+            from agentproof.recorder import latest_run_id
+            try:
+                run = latest_run_id(cwd)
+            except Exception:
+                run = None
+        return run, cwd
+
     def do_GET(self) -> None:
-        if self.path.rstrip("/") in ("/status", "/ping"):
+        parsed = urlparse(self.path)
+        route = parsed.path.rstrip("/") or "/"
+        if route in ("/status", "/ping", "/"):
             self._send(200, handle_request({"op": "status"}, self.server.cache))  # type: ignore[attr-defined]
-        else:
-            self._send(404, {"error": "not found"})
+            return
+        if route in ("/review", "/api/state"):
+            from agentproof import review
+            run, cwd = self._review_target(parse_qs(parsed.query))
+            if not run:
+                self._send(404, {"error": "no runs found for project", "cwd": str(cwd)})
+                return
+            if route == "/review":  # editor-agnostic local review page (static snapshot)
+                html = review.render_review_html(review.review_state(run, cwd), live=False)
+                self._send_raw(200, "text/html; charset=utf-8", html.encode("utf-8"))
+            else:                    # JSON for the VS Code extension / other clients
+                status, ctype, payload = review.handle_api("GET", "/api/state", b"", run, cwd)
+                self._send_raw(status, ctype, payload)
+            return
+        self._send(404, {"error": "not found"})
 
     def do_POST(self) -> None:
+        parsed = urlparse(self.path)
+        route = parsed.path.rstrip("/")
         n = int(self.headers.get("Content-Length") or 0)
         raw = self.rfile.read(n) if n else b"{}"
+        if route == "/api/verdict":  # allow/block a step from any client
+            from agentproof import review
+            run, cwd = self._review_target(parse_qs(parsed.query))
+            if not run:
+                self._send(404, {"error": "no runs found for project"})
+                return
+            status, ctype, payload = review.handle_api("POST", "/api/verdict", raw, run, cwd)
+            self._send_raw(status, ctype, payload)
+            return
         try:
             req = json.loads(raw or b"{}")
         except ValueError:
