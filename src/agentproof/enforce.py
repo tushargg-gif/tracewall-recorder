@@ -23,6 +23,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 import fnmatch
+import hashlib
 import json
 import shlex
 
@@ -30,7 +31,6 @@ from agentproof.events import now_iso
 from agentproof.sensitive import looks_secret_token
 
 POLICY_FILENAME = "policy.json"
-MODES = ("observe", "alert", "block")
 
 
 # --- active policy storage -------------------------------------------------
@@ -39,10 +39,33 @@ def policy_path(agentproof_dir: Path) -> Path:
     return Path(agentproof_dir) / POLICY_FILENAME
 
 
+def world_writable(path: Path) -> bool:
+    """True if any local user could modify ``path`` (world-writable bit set)."""
+    try:
+        return bool(Path(path).stat().st_mode & 0o002)
+    except OSError:
+        return False
+
+
+def policy_fingerprint(agentproof_dir: Path) -> str:
+    """sha256 of the active policy file (``"none"`` if absent) — a stable id used
+    to detect and record policy changes."""
+    try:
+        return hashlib.sha256(policy_path(agentproof_dir).read_bytes()).hexdigest()
+    except OSError:
+        return "none"
+
+
 def load_active_policy(agentproof_dir: Path) -> dict[str, Any]:
     path = policy_path(agentproof_dir)
     if not path.exists():
         return {"rules": []}
+    # Hardening (P0.6): a world-writable policy (or directory) can be edited by
+    # any local user, so we refuse to *trust* it — we fall back to no rules
+    # (default-safe decisions) rather than honor a possibly-tampered allowlist.
+    if world_writable(path) or world_writable(path.parent):
+        return {"rules": [], "untrusted": True,
+                "reason": "policy file or its directory is world-writable; not trusted"}
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (ValueError, OSError):

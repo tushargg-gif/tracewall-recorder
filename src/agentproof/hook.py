@@ -25,7 +25,7 @@ from agentproof import enforce
 from agentproof.contracts import load_contract, write_default_contract
 from agentproof.events import redact_secrets
 from agentproof.insight import analyze_action
-from agentproof.recorder import append_event, create_run, latest_run_id, paths_for_run, read_json
+from agentproof.recorder import append_event, create_run, latest_run_id, paths_for_run
 
 AGENT = "claude-code"
 _PERMISSION = {"block": "deny", "ask": "ask", "allow": "allow", "none": "allow"}
@@ -64,11 +64,16 @@ def action_from_event(tool_name: str, tool_input: dict[str, Any]) -> tuple[dict[
 
 # --- decide allow / ask / deny ---------------------------------------------
 
-def decide(action: dict[str, Any], label: str, cwd: Path, ask_mode: str = "native") -> dict[str, Any]:
+def decide(action: dict[str, Any], label: str, cwd: Path, ask_mode: str = "native",
+           policy: dict[str, Any] | None = None) -> dict[str, Any]:
     """Decide allow/ask/deny. ``ask_mode`` maps the 'ask' decision to a permission:
     native = 'ask' (Claude Code), deny = block it, defer = allow and let the host's
-    own approval handle it (Codex, whose hooks can't 'ask')."""
-    policy = enforce.load_active_policy(paths_for_run(cwd=cwd).agentproof_dir)
+    own approval handle it (Codex, whose hooks can't 'ask').
+
+    ``policy`` may be supplied by a caller that already holds it in memory (the
+    daemon's cache) to skip the per-call disk read; otherwise it's loaded here."""
+    if policy is None:
+        policy = enforce.load_active_policy(paths_for_run(cwd=cwd).agentproof_dir)
     learned = enforce.evaluate_action(action, policy)
     if learned["decision"] != "none":
         decision, reason, rule_id, source = learned["decision"], learned["reason"], learned["rule_id"], "policy"
@@ -155,12 +160,15 @@ def _record_pre(run_id: str, cwd: Path, action: dict[str, Any], label: str, deci
 
 # --- entrypoints (called by the CLI) ---------------------------------------
 
-def run_pre(stdin_text: str, cwd: Path, ask_mode: str = "native", source: str = AGENT) -> dict[str, Any]:
-    """Handle a PreToolUse event: decide, record, return the host's JSON."""
+def run_pre(stdin_text: str, cwd: Path, ask_mode: str = "native", source: str = AGENT,
+            policy: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Handle a PreToolUse event: decide, record, return the host's JSON.
+
+    ``policy`` lets the daemon pass its in-memory policy to avoid a disk read."""
     try:
         event = json.loads(stdin_text or "{}")
         action, label = action_from_event(event.get("tool_name", ""), event.get("tool_input") or {})
-        d = decide(action, label, cwd, ask_mode=ask_mode)
+        d = decide(action, label, cwd, ask_mode=ask_mode, policy=policy)
         try:
             run_id = ensure_run(cwd, agent=source)
             _record_pre(run_id, cwd, action, label, d, event.get("tool_input") or {}, source)

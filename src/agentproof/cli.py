@@ -10,7 +10,9 @@ from agentproof.events import parse_payload
 from agentproof import enforce
 from agentproof.enforce import POLICY_FILENAME
 from agentproof.flow import action_flow, render_flow
+from agentproof.guard import run_guard
 from agentproof.hook import run_post, run_pre
+from agentproof.observe import run_observe
 from agentproof.mcp_stdio import run_stdio_proxy
 from agentproof.recommend import (
     accept_recommendation,
@@ -111,11 +113,30 @@ def build_parser() -> argparse.ArgumentParser:
     policy.add_argument("--json", action="store_true", dest="json_policy", help="Print the active policy as JSON.")
     policy.add_argument("--export", default=None, metavar="PATH", help="Write a standalone policies HTML page.")
 
+    guard = subcommands.add_parser("guard", help="Run an agent inside an OS sandbox (deny secret reads for it and all it spawns).")
+    guard.add_argument("--source", default="agent", help="Name of the agent being guarded (recorded on the session).")
+    guard.add_argument("agent_command", nargs=argparse.REMAINDER, help="-- <agent command to run under the sandbox>")
+
+    observe = subcommands.add_parser("observe", help="Run an agent and record everything its process tree does (Linux/strace).")
+    observe.add_argument("--source", default="agent", help="Name of the agent being observed (recorded on each effect).")
+    observe.add_argument("agent_command", nargs=argparse.REMAINDER, help="-- <agent command to observe>")
+
     hook = subcommands.add_parser("hook", help="Coding-agent hook entrypoint (reads a tool event on stdin).")
     hook.add_argument("--post", action="store_true", help="Record a PostToolUse outcome instead of gating.")
     hook.add_argument("--ask-mode", choices=["native", "deny", "defer"], default="native",
                       help="How to handle 'ask' decisions: native (Claude Code), deny, or defer to the host's approval (Codex).")
     hook.add_argument("--source", default="claude-code", help="Which coding agent this hook serves (claude-code, codex, …); recorded on every action.")
+    hook.add_argument("--no-daemon", action="store_true", help="Decide in-process instead of routing to the running daemon.")
+
+    daemon = subcommands.add_parser("daemon", help="Run the always-on local decision daemon (agentproofd).")
+    daemon_sub = daemon.add_subparsers(dest="daemon_command", required=True)
+    d_run = daemon_sub.add_parser("run", help="Run the daemon in the foreground (used by the OS service).")
+    d_run.add_argument("--http-port", type=int, default=None, help="Localhost HTTP port (default 8787; falls back to an ephemeral port if taken).")
+    d_run.add_argument("--no-http", action="store_true", help="UDS only; do not serve localhost HTTP.")
+    daemon_sub.add_parser("status", help="Show whether the daemon is running, and where.")
+    daemon_sub.add_parser("stop", help="Stop the running daemon.")
+    daemon_sub.add_parser("install", help="Install the daemon as an always-on OS service (launchd on macOS, systemd --user on Linux).")
+    daemon_sub.add_parser("uninstall", help="Remove the daemon's OS service.")
 
     install_hook = subcommands.add_parser("install-hook", help="Install AgentProof as a Claude Code hook (.claude/settings.json).")
     install_hook.add_argument("--global", dest="global_install", action="store_true", help="Install to ~/.claude instead of the project.")
@@ -169,8 +190,14 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_verdict(args)
         if args.command == "policy":
             return cmd_policy(args)
+        if args.command == "guard":
+            return cmd_guard(args)
+        if args.command == "observe":
+            return cmd_observe(args)
         if args.command == "hook":
             return cmd_hook(args)
+        if args.command == "daemon":
+            return cmd_daemon(args)
         if args.command == "install-hook":
             return cmd_install_hook(args)
         if args.command == "install-codex":
@@ -292,12 +319,76 @@ def cmd_verdict(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_guard(args: argparse.Namespace) -> int:
+    command = list(args.agent_command)
+    if command and command[0] == "--":
+        command = command[1:]
+    if not command:
+        raise ValueError("Usage: agentproof guard -- <agent command>")
+    return run_guard(command, cwd=Path.cwd(), source=args.source)
+
+
+def cmd_observe(args: argparse.Namespace) -> int:
+    command = list(args.agent_command)
+    if command and command[0] == "--":
+        command = command[1:]
+    if not command:
+        raise ValueError("Usage: agentproof observe -- <agent command>")
+    return run_observe(command, cwd=Path.cwd(), source=args.source)
+
+
 def cmd_hook(args: argparse.Namespace) -> int:
     stdin_text = sys.stdin.read()
-    out = run_post(stdin_text, Path.cwd(), source=args.source) if args.post \
-        else run_pre(stdin_text, Path.cwd(), ask_mode=args.ask_mode, source=args.source)
+    out = None
+    if not args.no_daemon:
+        # Fast path: let the warm daemon decide (no Python engine cold start, no
+        # policy reload). If it isn't running or errors, fall through in-process.
+        try:
+            from agentproof import daemon
+            if daemon.is_running():
+                out = daemon.decide_via_daemon(
+                    stdin_text, Path.cwd(), args.ask_mode, args.source,
+                    phase="post" if args.post else "pre",
+                )
+        except Exception:
+            out = None
+    if out is None:
+        out = run_post(stdin_text, Path.cwd(), source=args.source) if args.post \
+            else run_pre(stdin_text, Path.cwd(), ask_mode=args.ask_mode, source=args.source)
     print(json.dumps(out))
     return 0
+
+
+def cmd_daemon(args: argparse.Namespace) -> int:
+    from agentproof import daemon
+    if args.daemon_command == "run":
+        port = None if args.no_http else (args.http_port if args.http_port is not None else daemon.DEFAULT_HTTP_PORT)
+        try:
+            daemon.serve(http_port=port)
+        except KeyboardInterrupt:
+            pass
+        return 0
+    if args.daemon_command == "status":
+        st = daemon.status()
+        print(json.dumps(st, indent=2))
+        return 0 if st.get("running") else 1
+    if args.daemon_command == "stop":
+        print("stopped" if daemon.stop_daemon() else "not running")
+        return 0
+    if args.daemon_command == "install":
+        info = daemon.install_service()
+        if info["loaded"]:
+            print(f"AgentProof daemon installed as a {info['backend']} service and started ({info['path']}).")
+        else:
+            print(f"Wrote {info['backend']} unit to {info['path']}.")
+            if info["hint"]:
+                print(f"To start it: {info['hint']}")
+        return 0
+    if args.daemon_command == "uninstall":
+        info = daemon.uninstall_service()
+        print(f"Removed {info['backend']} unit ({info['path']})." if info["removed"] else "No service unit found.")
+        return 0
+    return 1
 
 
 def cmd_install_codex(args: argparse.Namespace) -> int:
