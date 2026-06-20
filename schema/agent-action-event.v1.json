@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentproof.dev/schema/agent-action-event.v1.json",
+  "title": "AgentProof Agent Action Event",
+  "description": "One hash-chained record of a single agent action (intent or effect).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_id",
+    "run_id",
+    "event_type",
+    "timestamp",
+    "payload",
+    "prev_event_hash",
+    "event_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1",
+      "description": "Event contract version."
+    },
+    "event_id": {
+      "type": "string",
+      "description": "Unique id, e.g. evt_ab12cd34ef56."
+    },
+    "run_id": {
+      "type": "string",
+      "description": "The run this event belongs to."
+    },
+    "event_type": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Dotted action/lifecycle type, e.g. command_started, mcp.tool.call.started, os.file.denied, process.exec, policy.decision."
+    },
+    "timestamp": {
+      "type": "string",
+      "description": "ISO 8601 local timestamp."
+    },
+    "payload": {
+      "type": "object",
+      "description": "Event-type-specific body; secrets are redacted before write."
+    },
+    "prev_event_hash": {
+      "type": ["string", "null"],
+      "description": "event_hash of the previous event in the run, or null for the first."
+    },
+    "event_hash": {
+      "type": "string",
+      "description": "sha256 over the canonical event minus this field; links the chain."
+    }
+  }
+}
