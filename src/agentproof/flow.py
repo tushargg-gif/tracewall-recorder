@@ -39,6 +39,10 @@ def build_action_flow(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
             actions.append(_command_action(event, payload))
         elif event_type == "mcp.tool.call.started":
             actions.append(_tool_action(event, payload, _tool_status(events, index)))
+        elif event_type == "os.file.denied":
+            actions.append(_denied_action(event, payload))
+        elif event_type in ("process.exec", "file.read", "file.write", "net.connect"):
+            actions.append(_effect_action(event_type, event, payload))
 
     for seq, action in enumerate(actions, start=1):
         action["seq"] = seq
@@ -106,6 +110,43 @@ def _command_action(event: dict[str, Any], payload: dict[str, Any]) -> dict[str,
         "detail": command_text if command_text != _shorten(command_text) else "",
         "status": status,
         "duration": payload.get("duration_seconds"),
+        "timestamp": event.get("timestamp"),
+        "source_event_ids": [event.get("event_id")],
+    }
+
+
+def _effect_action(etype: str, event: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any]:
+    """A real OS effect observed (file open / exec / network connect) — ground truth."""
+    src = str(payload.get("source") or "agent")
+    if etype == "process.exec":
+        path = str(payload.get("path") or "")
+        kind, title, detail = "exec", f"exec {path.rsplit('/', 1)[-1]}", path
+    elif etype == "net.connect":
+        kind, title, detail = "network", f"connect {payload.get('host')}:{payload.get('port')}", ""
+    else:
+        verb = "write" if etype == "file.write" else "read"
+        path = str(payload.get("path") or "")
+        kind, title, detail = "file", f"{verb} {path}", path
+    short = _shorten(title)
+    return {
+        "kind": kind, "actor": src, "source": src, "title": short,
+        "detail": detail if detail != short else "", "status": "ok",
+        "timestamp": event.get("timestamp"), "source_event_ids": [event.get("event_id")],
+    }
+
+
+def _denied_action(event: dict[str, Any], payload: dict[str, Any]) -> dict[str, Any]:
+    """A read/write the OS sandbox denied — ground truth, no agent cooperation needed."""
+    path = str(payload.get("path") or "")
+    op = str(payload.get("operation") or "access")
+    src = str(payload.get("source") or "os")
+    return {
+        "kind": "file",
+        "actor": str(payload.get("process") or src),
+        "source": src,
+        "title": _shorten(f"{op} {path}"),
+        "detail": path,
+        "status": "blocked",
         "timestamp": event.get("timestamp"),
         "source_event_ids": [event.get("event_id")],
     }
