@@ -20,9 +20,8 @@ from agentproof.enforcement import (
     guard_backend,
     run_guarded,
 )
-from agentproof.events import now_iso
+from agentproof.events import normalize_event, now_iso
 from agentproof.gitutils import git_diff, git_info, git_root
-from agentproof.store import default_store_for_project
 
 
 AGENTPROOF_DIR = ".agentproof"
@@ -133,7 +132,6 @@ def create_run(
         "git": git_evidence,
     }
     write_json(paths.run_file, run)
-    default_store_for_project(project_root).upsert_run(run)
     paths.events_file.touch()
     paths.active_file.write_text(run_id, encoding="utf-8")
     append_event(
@@ -187,7 +185,6 @@ def stop_run(
         }
     )
     write_json(paths.run_file, run)
-    default_store_for_project(paths.project_root).upsert_run(run)
     append_event(paths, "run_stopped", {"changed_files": snapshot_diff["files_changed"]})
     if paths.active_file.exists() and paths.active_file.read_text(encoding="utf-8").strip() == resolved_run_id:
         paths.active_file.unlink()
@@ -343,7 +340,6 @@ def record_command(
         "stderr_path": str(stderr_path.relative_to(paths.project_root)),
     }
     append_event(paths, "command_finished", payload)
-    append_event(paths, "process.exec", payload)
     if result.stdout:
         print(result.stdout, end="")
     if result.stderr:
@@ -359,21 +355,51 @@ def record_event(
 ) -> dict[str, Any]:
     resolved_run_id = run_id or active_run_id(cwd)
     paths = paths_for_run(resolved_run_id, cwd)
-    return default_store_for_project(paths.project_root).append_event(
-        resolved_run_id,
-        paths.events_file,
-        event_type,
-        payload,
-    )
+    return _write_event(paths.events_file, resolved_run_id, event_type, payload)
 
 
 def append_event(paths: RunPaths, event_type: str, payload: dict[str, Any]) -> None:
-    default_store_for_project(paths.project_root).append_event(
-        paths.run_dir.name,
-        paths.events_file,
-        event_type,
-        payload,
-    )
+    _write_event(paths.events_file, paths.run_dir.name, event_type, payload)
+
+
+def _last_event_hash(events_file: Path) -> str | None:
+    """The tip of the hash chain: last event's hash, read from the JSONL log.
+
+    The local hash-chained log is the single source of truth (see
+    docs/adr-source-of-truth.md). Reading the file is fine for per-run sizes; if
+    it ever shows up hot, the daemon can cache the tip in memory.
+    """
+    if not events_file.exists():
+        return None
+    last = None
+    with events_file.open("r", encoding="utf-8") as handle:
+        for line in handle:
+            if line.strip():
+                last = line
+    if not last:
+        return None
+    try:
+        return json.loads(last).get("event_hash")
+    except ValueError:
+        return None
+
+
+def _write_event(events_file: Path, run_id: str, event_type: str,
+                 payload: dict[str, Any] | None) -> dict[str, Any]:
+    """Append one hash-chained event to the JSONL log and return it."""
+    event = normalize_event(run_id, event_type, payload, prev_event_hash=_last_event_hash(events_file))
+    events_file.parent.mkdir(parents=True, exist_ok=True)
+    with events_file.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(event, sort_keys=True) + "\n")
+    return event
+
+
+def record_policy_event(agentproof_dir: Path, event_type: str, payload: dict[str, Any]) -> dict[str, Any]:
+    """Append a hash-chained entry to the project's policy audit log
+    (``.agentproof/policy-events.jsonl``). Independent of any run — the daemon
+    writes here when it observes a policy change or refuses an untrusted policy,
+    so disabling the guardrail can't happen silently (P0.6)."""
+    return _write_event(Path(agentproof_dir) / "policy-events.jsonl", "policy", event_type, payload)
 
 
 def read_events(run_id: str, cwd: Path | None = None) -> list[dict[str, Any]]:

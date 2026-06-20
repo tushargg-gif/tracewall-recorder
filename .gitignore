@@ -10,3 +10,7 @@ agents-test/
 # Locally-generated agent hook config (contains absolute, per-machine paths)
 .claude/
 .codex/
+
+# Environment files (may contain secrets)
+.env
+.env.*

@@ -17,8 +17,7 @@ from agentproof.recorder import (
     write_json,
 )
 from agentproof.scoring import score_run
-from agentproof.sensitive import SECRET_PATTERNS, looks_secret_path
-from agentproof.store import default_store_for_project
+from agentproof.sensitive import looks_secret_path
 
 
 PACKAGE_FILES = {
@@ -85,7 +84,6 @@ def verify_run(run_id: str | None = None, cwd: Path | None = None) -> dict[str, 
         "event_summary": event_type_counts(events),
     }
     write_json(paths.run_dir / "verification.json", verification)
-    default_store_for_project(paths.project_root).store_verification(resolved_run_id, verification)
     run.update(
         {
             "status": f"verified_{verdict.lower().replace(' ', '_')}",
@@ -95,7 +93,6 @@ def verify_run(run_id: str | None = None, cwd: Path | None = None) -> dict[str, 
         }
     )
     write_json(paths.run_file, run)
-    default_store_for_project(paths.project_root).upsert_run(run)
     return verification
 
 

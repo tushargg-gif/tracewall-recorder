@@ -188,7 +188,6 @@ def test_block_list_matches_flag_list() -> None:
     from agentproof import enforcement, sensitive, verifier
 
     assert enforcement.DEFAULT_SENSITIVE_PATTERNS == sensitive.SECRET_PATTERNS
-    assert verifier.SECRET_PATTERNS == sensitive.SECRET_PATTERNS
     assert verifier.looks_secret_path is sensitive.looks_secret_path
 
 

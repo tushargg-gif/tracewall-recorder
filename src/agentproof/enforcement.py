@@ -23,7 +23,7 @@ Backends
             and (b) masks are enumerated at launch, so files created later that
             match a pattern are not covered. A Landlock / LD_PRELOAD backend
             would restore EPERM + pattern coverage and is the planned hardening.
-    other   Unsupported. ``guard_supported()`` returns False so callers fail
+    other   Unsupported. ``guard_backend()`` returns ``"none"`` so callers fail
             closed (refuse to start) rather than run an agent unprotected.
 
 Scope and honest limits
@@ -43,7 +43,6 @@ import shutil
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 from agentproof.sensitive import SECRET_PATTERNS
 
@@ -131,16 +130,6 @@ class GuardResult:
     stdout: str = ""
     stderr: str = ""
 
-    def to_decision(self) -> dict[str, Any]:
-        return {
-            "event_type": "enforcement_decision",
-            "backend": self.backend,
-            "enforced": self.enforced,
-            "command": self.command,
-            "exit_code": self.exit_code,
-            "action_taken": "blocked" if self.blocked else "allowed",
-        }
-
 
 def guard_backend() -> str:
     """Return the enforcement backend available on this host."""
@@ -150,10 +139,6 @@ def guard_backend() -> str:
     if system == "Linux" and shutil.which("bwrap"):
         return "bubblewrap"
     return "none"
-
-
-def guard_supported() -> bool:
-    return guard_backend() != "none"
 
 
 def build_macos_profile(profile: GuardProfile) -> str:
@@ -168,6 +153,19 @@ def build_macos_profile(profile: GuardProfile) -> str:
         clauses = "\n".join(f'    (regex #"{rx}")' for rx in profile.deny_regexes)
         lines.append("(deny file-read* file-write*\n" + clauses + ")")
     return "\n".join(lines) + "\n"
+
+
+def guard_argv(command: list[str], profile: GuardProfile, backend: str | None = None,
+               workdir: Path | None = None) -> list[str]:
+    """The command wrapped so the OS confines it and its children. The single
+    place that knows how to invoke each backend (reused by run_guarded and guard)."""
+    backend = backend or guard_backend()
+    workdir = workdir or profile.project_root
+    if backend == "bubblewrap":
+        return _bubblewrap_argv(command, profile, workdir)
+    if backend == "sandbox-exec":
+        return ["/usr/bin/sandbox-exec", "-p", build_macos_profile(profile), *command]
+    return list(command)
 
 
 def run_guarded(
@@ -209,10 +207,7 @@ def run_guarded(
             stderr=completed.stderr,
         )
 
-    if backend == "bubblewrap":
-        wrapped = _bubblewrap_argv(command, profile, workdir)
-    else:  # sandbox-exec
-        wrapped = ["/usr/bin/sandbox-exec", "-p", build_macos_profile(profile), *command]
+    wrapped = guard_argv(command, profile, backend, workdir)
 
     completed = subprocess.run(
         wrapped, cwd=str(workdir), capture_output=True, text=True, timeout=timeout

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
-import json
 
 from agentproof.recorder import latest_run_id, paths_for_run, read_json, write_json
 from agentproof.verifier import verify_run
