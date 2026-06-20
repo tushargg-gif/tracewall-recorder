@@ -27,6 +27,12 @@
 > are tested against each tool's documented hook contract. Validate against your own
 > setup before trusting it in anger (see the quickstart smoke tests).
 
+> **Local-first, no account.** AgentProof runs entirely on your machine — no signup,
+> no cloud, no telemetry, no outbound network. The full record → review → recommend →
+> enforce loop works offline. Your agent's actions never leave your computer unless you
+> explicitly opt in to team sync (a future, opt-in control plane). Secrets are redacted
+> at write time, so they're never even stored raw.
+
 ---
 
 ## The problem

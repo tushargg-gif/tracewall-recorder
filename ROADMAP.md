@@ -1,5 +1,10 @@
 # Roadmap
 
+> **The detailed, prioritized build plan now lives in [`docs/roadmap.md`](docs/roadmap.md)** —
+> the daemon + control-plane + clients architecture, in priority order (P0→P3) with the
+> strategic "more-than-a-product" track. The section below is the original alpha-spine
+> roadmap, kept for context; `docs/roadmap.md` supersedes its forward-looking items.
+
 AgentProof Recorder is early alpha. The roadmap is intentionally focused on local evidence capture and verification before broader platform work.
 
 The package is the **record → verify → report** spine plus opt-in enforcement.
