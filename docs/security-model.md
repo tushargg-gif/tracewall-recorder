@@ -1,10 +1,10 @@
 # Security Model
 
-AgentProof Recorder is local early alpha developer tooling. Its security model is intentionally modest.
+Tracewall Recorder is local early alpha developer tooling. Its security model is intentionally modest.
 
 ## What It Protects Against
 
-AgentProof Recorder helps detect:
+Tracewall Recorder helps detect:
 
 - agents touching forbidden paths
 - secret-like file changes
@@ -16,9 +16,9 @@ AgentProof Recorder helps detect:
 
 ## What It Does Not Protect Against
 
-AgentProof Recorder does not make local agents tamper-proof.
+Tracewall Recorder does not make local agents tamper-proof.
 
-It does not prevent a user or process with write access from deleting or rewriting `.agentproof/`.
+It does not prevent a user or process with write access from deleting or rewriting `.tracewall/`.
 
 It does not replace:
 
@@ -32,18 +32,18 @@ It does not replace:
 
 ## Real-Time Enforcement (Optional)
 
-By default AgentProof Recorder is observe-only: it *flags* sensitive-file access
+By default Tracewall Recorder is observe-only: it *flags* sensitive-file access
 after the fact (`action_taken="flagged"`). With `--enforce` it also *prevents* it
 in real time (`action_taken="blocked"`):
 
 ```bash
-agentproof start --agent claude-code --enforce
+tracewall start --agent claude-code --enforce
 ```
 
-In enforce mode, every command recorded with `agentproof run` is launched inside
+In enforce mode, every command recorded with `tracewall run` is launched inside
 an OS sandbox that denies **read, write, and delete** on sensitive paths
-(`agentproof.sensitive.SECRET_PATTERNS`: `.env`, `*.pem`, `*.key`, `id_rsa`,
-`credentials`, `secrets/`, …). Because AgentProof launches the agent, it confines
+(`tracewall.sensitive.SECRET_PATTERNS`: `.env`, `*.pem`, `*.key`, `id_rsa`,
+`credentials`, `secrets/`, …). Because Tracewall launches the agent, it confines
 the **process tree it spawns** — no kernel driver, EDR, or elevated privilege.
 
 Backends:
@@ -64,7 +64,7 @@ Honest limits:
   run rather than run unprotected.
 - This is a **guardrail against accidental or rogue access, not a containment
   boundary** for an attacker who fully controls the agent binary.
-- It confines processes AgentProof spawns (the agent and its children), not
+- It confines processes Tracewall spawns (the agent and its children), not
   pre-existing processes.
 
 ## Evidence Integrity
@@ -75,7 +75,7 @@ This is tamper-evident local evidence, not tamper-proof storage.
 
 ## Secret Redaction
 
-AgentProof Recorder redacts common sensitive fields before writing evidence, including:
+Tracewall Recorder redacts common sensitive fields before writing evidence, including:
 
 - authorization
 - api_key

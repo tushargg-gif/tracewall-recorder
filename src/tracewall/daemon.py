@@ -1,4 +1,4 @@
-"""agentproofd — the always-on, local-first decision daemon (P0.1).
+"""tracewalld — the always-on, local-first decision daemon (P0.1).
 
 The per-invocation CLI pays a Python cold start *and* re-reads the policy from
 disk on every agent action. This daemon flips that: it stays warm, holds the
@@ -18,7 +18,7 @@ format is newline-delimited JSON; one request, one response.
 
     request   {"op": "ping"}        response  {"ok": true, "pid": ..., "version": ...}
 
-Runtime files live under ``$AGENTPROOF_HOME`` (default ``~/.agentproof``):
+Runtime files live under ``$TRACEWALL_HOME`` (default ``~/.tracewall``):
 ``daemon.sock`` (the UDS) and ``daemon.json`` (pid / port / version, for clients
 to discover the daemon). The socket is created owner-only (0600) — the daemon is
 privileged (it sees every action), so we don't expose it to other local users.
@@ -40,12 +40,12 @@ import sys
 import threading
 from urllib.parse import parse_qs, urlparse
 
-from agentproof import enforce, hook
-from agentproof.events import now_iso
-from agentproof.recorder import paths_for_run, record_policy_event
+from tracewall import enforce, hook
+from tracewall.events import now_iso
+from tracewall.recorder import paths_for_run, record_policy_event
 
 try:  # version is best-effort metadata only
-    from agentproof import __version__ as VERSION
+    from tracewall import __version__ as VERSION
 except Exception:  # pragma: no cover
     VERSION = "0"
 
@@ -56,7 +56,7 @@ DEFAULT_HTTP_PORT = 8787
 
 def home() -> Path:
     """User-global runtime dir for the daemon (overridable for tests/CI)."""
-    return Path(os.environ.get("AGENTPROOF_HOME") or (Path.home() / ".agentproof"))
+    return Path(os.environ.get("TRACEWALL_HOME") or (Path.home() / ".tracewall"))
 
 
 def socket_path() -> Path:
@@ -72,7 +72,7 @@ def info_path() -> Path:
 class PolicyCache:
     """Holds the active policy per project, re-reading only when it changes.
 
-    Keyed by the project's ``.agentproof`` dir; invalidated by ``policy.json``'s
+    Keyed by the project's ``.tracewall`` dir; invalidated by ``policy.json``'s
     mtime so a freshly-accepted rule is picked up on the next action without a
     full reload on every call.
     """
@@ -82,12 +82,12 @@ class PolicyCache:
         self._fingerprints: dict[str, str] = {}
         self._lock = threading.Lock()
 
-    def get(self, agentproof_dir: Path) -> dict[str, Any]:
-        key = str(agentproof_dir)
+    def get(self, tracewall_dir: Path) -> dict[str, Any]:
+        key = str(tracewall_dir)
         # Signature includes the mode, so a chmod (e.g. to world-writable) also
         # invalidates the cache and re-triggers the trust check, not just edits.
         try:
-            st = enforce.policy_path(agentproof_dir).stat()
+            st = enforce.policy_path(tracewall_dir).stat()
             sig: Any = (st.st_mtime, st.st_mode)
         except OSError:
             sig = None
@@ -95,17 +95,17 @@ class PolicyCache:
             cached = self._cache.get(key)
             if cached is not None and cached[0] == sig:
                 return cached[1]
-        policy = enforce.load_active_policy(agentproof_dir)
-        fingerprint = enforce.policy_fingerprint(agentproof_dir)
+        policy = enforce.load_active_policy(tracewall_dir)
+        fingerprint = enforce.policy_fingerprint(tracewall_dir)
         with self._lock:
             previous = self._fingerprints.get(key)
             self._cache[key] = (sig, policy)
             self._fingerprints[key] = fingerprint
         if policy.get("untrusted") or previous != fingerprint:
-            self._record_change(Path(agentproof_dir), previous, fingerprint, policy)
+            self._record_change(Path(tracewall_dir), previous, fingerprint, policy)
         return policy
 
-    def _record_change(self, agentproof_dir: Path, previous: str | None,
+    def _record_change(self, tracewall_dir: Path, previous: str | None,
                         fingerprint: str, policy: dict[str, Any]) -> None:
         """Tamper-evidence (P0.6): the daemon logs every policy change it observes
         (and any refusal to trust a world-writable policy) to the project's
@@ -113,10 +113,10 @@ class PolicyCache:
         an audit write."""
         try:
             if policy.get("untrusted"):
-                record_policy_event(agentproof_dir, "policy.rejected",
+                record_policy_event(tracewall_dir, "policy.rejected",
                                     {"reason": policy.get("reason"), "fingerprint": fingerprint})
             elif previous is not None:
-                record_policy_event(agentproof_dir, "policy.changed",
+                record_policy_event(tracewall_dir, "policy.changed",
                                     {"previous_fingerprint": previous, "fingerprint": fingerprint,
                                      "rules": len(policy.get("rules") or [])})
         except Exception:
@@ -138,8 +138,8 @@ def handle_request(req: dict[str, Any], cache: PolicyCache) -> dict[str, Any]:
         source = req.get("source") or hook.AGENT
         if req.get("phase") == "post":
             return hook.run_post(stdin_text, cwd, source=source)
-        agentproof_dir = paths_for_run(cwd=cwd).agentproof_dir
-        policy = cache.get(agentproof_dir)
+        tracewall_dir = paths_for_run(cwd=cwd).tracewall_dir
+        policy = cache.get(tracewall_dir)
         return hook.run_pre(stdin_text, cwd, ask_mode=ask_mode, source=source, policy=policy)
     if op in ("ping", "status"):
         return {"ok": True, "pid": os.getpid(), "version": VERSION, "cached_projects": cache.size()}
@@ -200,7 +200,7 @@ class _HTTPHandler(http.server.BaseHTTPRequestHandler):
         cwd = Path(query.get("cwd", ["."])[0])
         run = query.get("run", [None])[0]
         if not run:
-            from agentproof.recorder import latest_run_id
+            from tracewall.recorder import latest_run_id
             try:
                 run = latest_run_id(cwd)
             except Exception:
@@ -214,7 +214,7 @@ class _HTTPHandler(http.server.BaseHTTPRequestHandler):
             self._send(200, handle_request({"op": "status"}, self.server.cache))  # type: ignore[attr-defined]
             return
         if route in ("/review", "/api/state"):
-            from agentproof import review
+            from tracewall import review
             run, cwd = self._review_target(parse_qs(parsed.query))
             if not run:
                 self._send(404, {"error": "no runs found for project", "cwd": str(cwd)})
@@ -234,7 +234,7 @@ class _HTTPHandler(http.server.BaseHTTPRequestHandler):
         n = int(self.headers.get("Content-Length") or 0)
         raw = self.rfile.read(n) if n else b"{}"
         if route == "/api/verdict":  # allow/block a step from any client
-            from agentproof import review
+            from tracewall import review
             run, cwd = self._review_target(parse_qs(parsed.query))
             if not run:
                 self._send(404, {"error": "no runs found for project"})
@@ -380,8 +380,8 @@ def decide_via_daemon(stdin_text: str, cwd: Path, ask_mode: str, source: str, ph
 # terminal-only and background agents. Generation is pure (testable); loading is
 # best-effort (we leave the unit + a hint if the loader isn't available).
 
-SERVICE_LABEL = "dev.agentproof.daemon"
-SYSTEMD_UNIT_NAME = "agentproof.service"
+SERVICE_LABEL = "dev.tracewall.daemon"
+SYSTEMD_UNIT_NAME = "tracewall.service"
 
 _PLIST = """<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -401,7 +401,7 @@ _PLIST = """<?xml version="1.0" encoding="UTF-8"?>
 """
 
 _SYSTEMD_UNIT = """[Unit]
-Description=AgentProof local decision daemon (agentproofd)
+Description=tracewall local decision daemon (tracewalld)
 After=default.target
 
 [Service]
@@ -415,7 +415,7 @@ WantedBy=default.target
 
 def _exec_args() -> list[str]:
     """How the service launches the daemon: this Python running the package."""
-    return [sys.executable, "-m", "agentproof", "daemon", "run"]
+    return [sys.executable, "-m", "tracewall", "daemon", "run"]
 
 
 def service_spec(system: str | None = None, dest_dir: Path | None = None) -> tuple[Path, str, list[str]]:

@@ -3,15 +3,15 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from agentproof import recorder
-from agentproof.events import (
+from tracewall import recorder
+from tracewall.events import (
     EVENT_SCHEMA_V1,
     normalize_event,
     validate_event,
     verify_event_chain,
     verify_event_stream,
 )
-from agentproof.hook import run_pre
+from tracewall.hook import run_pre
 
 SCHEMA_FILE = Path(__file__).resolve().parents[1] / "schema" / "agent-action-event.v1.json"
 

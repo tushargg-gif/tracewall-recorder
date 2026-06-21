@@ -30,11 +30,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from agentproof import enforce
-from agentproof.flow import action_flow
-from agentproof.recorder import paths_for_run, write_json
-from agentproof.review import load_verdicts
-from agentproof.sensitive import looks_secret_token
+from tracewall import enforce
+from tracewall.flow import action_flow
+from tracewall.recorder import paths_for_run, write_json
+from tracewall.review import load_verdicts
+from tracewall.sensitive import looks_secret_token
 
 
 def recommend_policy(run_id: str, cwd: Path | None = None) -> dict[str, Any]:
@@ -94,8 +94,8 @@ def save_recommended_policy(run_id: str, recommendation: dict[str, Any], cwd: Pa
 
 def accept_recommendation(run_id: str, recommendation: dict[str, Any], cwd: Path | None = None) -> dict[str, Any]:
     """Merge the recommended rules into the project's active policy."""
-    agentproof_dir = paths_for_run(run_id, cwd).agentproof_dir
-    return enforce.accept_rules(agentproof_dir, recommendation.get("rules") or [], source_run=run_id)
+    tracewall_dir = paths_for_run(run_id, cwd).tracewall_dir
+    return enforce.accept_rules(tracewall_dir, recommendation.get("rules") or [], source_run=run_id)
 
 
 def render_recommendations(recommendation: dict[str, Any]) -> str:
@@ -107,7 +107,7 @@ def render_recommendations(recommendation: dict[str, Any]) -> str:
     header = f"Recommended policy for {recommendation.get('run_id')}"
     lines = [header, "=" * len(header)]
     if not rules and not conflicts:
-        lines.append("No verdicts to learn from yet — review the action flow first (agentproof review).")
+        lines.append("No verdicts to learn from yet — review the action flow first (tracewall review).")
         return "\n".join(lines)
 
     for rule in rules:

@@ -1,4 +1,4 @@
-from agentproof.cli import main
+from tracewall.cli import main
 
 
 if __name__ == "__main__":

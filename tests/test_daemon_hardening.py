@@ -6,16 +6,16 @@ import time
 import uuid
 from pathlib import Path
 
-from agentproof import enforce
-from agentproof.daemon import PolicyCache, _UDSServer
-from agentproof.events import verify_event_chain
+from tracewall import enforce
+from tracewall.daemon import PolicyCache, _UDSServer
+from tracewall.events import verify_event_chain
 
 ALLOW_CURL = {"id": "r1", "decision": "allow", "match": {"kind": "command", "binary": "curl"}}
 BLOCK_SECRET = {"id": "r2", "decision": "block", "match": {"kind": "command", "touches_secret": True}}
 
 
 def _ap(tmp_path: Path) -> Path:
-    d = tmp_path / ".agentproof"
+    d = tmp_path / ".tracewall"
     d.mkdir()
     return d
 
@@ -47,7 +47,7 @@ def test_policy_fingerprint_tracks_content(tmp_path: Path):
 def test_record_policy_event_is_hash_chained(tmp_path: Path):
     ap = _ap(tmp_path)
     enforce.save_active_policy(ap, {"rules": []})
-    from agentproof.recorder import record_policy_event
+    from tracewall.recorder import record_policy_event
     record_policy_event(ap, "policy.changed", {"fingerprint": "a"})
     record_policy_event(ap, "policy.changed", {"fingerprint": "b"})
     events = _read_jsonl(ap / "policy-events.jsonl")

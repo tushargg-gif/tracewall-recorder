@@ -2,7 +2,7 @@
 
 These modules were built during early exploration but sit **outside the core
 record → verify → report spine**. They are kept here (not deleted) so the history
-and ideas survive, but they are **not part of the `agentproof` package** and are
+and ideas survive, but they are **not part of the `tracewall` package** and are
 not imported, installed, or tested.
 
 ## What's here and why it was parked
@@ -24,7 +24,7 @@ not imported, installed, or tested.
 Everything is preserved in git history. To bring a module back:
 
 ```bash
-git mv archive/src/<module>.py src/agentproof/<module>.py
+git mv archive/src/<module>.py src/tracewall/<module>.py
 # re-add its import wiring (verifier.py / cli.py) and its test, then add deps back
 ```
 

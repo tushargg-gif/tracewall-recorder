@@ -1,4 +1,4 @@
-# AgentProof — North Star
+# Tracewall — North Star
 
 **Audience:** founding team (internal compass)
 **Horizon:** ~12 months — this year's destination
@@ -23,7 +23,7 @@ something a human can **see, understand, and control** — and we make it effort
 *learning the policy from what the agent actually does*, instead of asking people to
 write rules up front.
 
-If we are wildly successful, "is there an AgentProof trail for this?" becomes the
+If we are wildly successful, "is there a Tracewall trail for this?" becomes the
 default question before any agent is allowed near a production system.
 
 ---
@@ -110,7 +110,7 @@ human already approved stop needing approval, while everything stays recorded.
 
 ### What the user experiences
 
-They run their agent through AgentProof. They open a clean timeline of what it did.
+They run their agent through Tracewall. They open a clean timeline of what it did.
 They click allow/block down the list. The system says: *"Based on your choices, here's
 the policy I'd suggest, and here's why."* They accept. Next run, the agent flies
 through the approved actions and stops at the one that crosses a line — with a record

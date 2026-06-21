@@ -12,22 +12,22 @@ import subprocess
 import time
 import uuid
 
-from agentproof import enforce as policy_engine
-from agentproof.contracts import TaskContract
-from agentproof.enforcement import (
+from tracewall import enforce as policy_engine
+from tracewall.contracts import TaskContract
+from tracewall.enforcement import (
     DEFAULT_SENSITIVE_PATTERNS,
     GuardProfile,
     guard_backend,
     run_guarded,
 )
-from agentproof.events import normalize_event, now_iso
-from agentproof.gitutils import git_diff, git_info, git_root
+from tracewall.events import normalize_event, now_iso
+from tracewall.gitutils import git_diff, git_info, git_root
 
 
-AGENTPROOF_DIR = ".agentproof"
+TRACEWALL_DIR = ".tracewall"
 ACTIVE_RUN_FILE = "active_run"
 IGNORE_DIRS = {
-    ".agentproof",
+    ".tracewall",
     ".git",
     ".hg",
     ".svn",
@@ -48,7 +48,7 @@ IGNORE_DIRS = {
 @dataclass(frozen=True)
 class RunPaths:
     project_root: Path
-    agentproof_dir: Path
+    tracewall_dir: Path
     runs_dir: Path
     run_dir: Path
     run_file: Path
@@ -63,24 +63,24 @@ def discover_project_root(cwd: Path | None = None) -> Path:
         return root.resolve()
     current = cwd
     for candidate in [current, *current.parents]:
-        if (candidate / AGENTPROOF_DIR).exists():
+        if (candidate / TRACEWALL_DIR).exists():
             return candidate.resolve()
     return cwd
 
 
 def paths_for_run(run_id: str | None = None, cwd: Path | None = None) -> RunPaths:
     project_root = discover_project_root(cwd)
-    agentproof_dir = project_root / AGENTPROOF_DIR
-    runs_dir = agentproof_dir / "runs"
+    tracewall_dir = project_root / TRACEWALL_DIR
+    runs_dir = tracewall_dir / "runs"
     run_dir = runs_dir / run_id if run_id else runs_dir
     return RunPaths(
         project_root=project_root,
-        agentproof_dir=agentproof_dir,
+        tracewall_dir=tracewall_dir,
         runs_dir=runs_dir,
         run_dir=run_dir,
         run_file=run_dir / "run.json",
         events_file=run_dir / "events.jsonl",
-        active_file=agentproof_dir / ACTIVE_RUN_FILE,
+        active_file=tracewall_dir / ACTIVE_RUN_FILE,
     )
 
 
@@ -91,11 +91,11 @@ def create_run(
     enforce: bool = False,
 ) -> dict[str, Any]:
     project_root = discover_project_root(cwd)
-    agentproof_dir = project_root / AGENTPROOF_DIR
-    agentproof_dir.mkdir(parents=True, exist_ok=True)
-    runs_dir = agentproof_dir / "runs"
+    tracewall_dir = project_root / TRACEWALL_DIR
+    tracewall_dir.mkdir(parents=True, exist_ok=True)
+    runs_dir = tracewall_dir / "runs"
     runs_dir.mkdir(parents=True, exist_ok=True)
-    reports_dir = agentproof_dir / "reports"
+    reports_dir = tracewall_dir / "reports"
     reports_dir.mkdir(parents=True, exist_ok=True)
 
     run_id = f"run_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
@@ -193,26 +193,26 @@ def stop_run(
 
 def active_run_id(cwd: Path | None = None) -> str:
     project_root = discover_project_root(cwd)
-    active_file = project_root / AGENTPROOF_DIR / ACTIVE_RUN_FILE
+    active_file = project_root / TRACEWALL_DIR / ACTIVE_RUN_FILE
     if not active_file.exists():
-        raise RuntimeError("No active AgentProof Recorder run found. Start one with `agentproof start`.")
+        raise RuntimeError("No active tracewall Recorder run found. Start one with `tracewall start`.")
     run_id = active_file.read_text(encoding="utf-8").strip()
     if not run_id:
-        raise RuntimeError("Active AgentProof Recorder run file is empty.")
+        raise RuntimeError("Active tracewall Recorder run file is empty.")
     return run_id
 
 
 def latest_run_id(cwd: Path | None = None) -> str:
     paths = paths_for_run(cwd=cwd)
     if not paths.runs_dir.exists():
-        raise RuntimeError("No AgentProof Recorder runs found.")
+        raise RuntimeError("No tracewall Recorder runs found.")
     runs = sorted(
         [path for path in paths.runs_dir.iterdir() if path.is_dir()],
         key=lambda path: path.stat().st_mtime,
         reverse=True,
     )
     if not runs:
-        raise RuntimeError("No AgentProof Recorder runs found.")
+        raise RuntimeError("No tracewall Recorder runs found.")
     return runs[0].name
 
 
@@ -229,7 +229,7 @@ def run_is_enforced(run: dict[str, Any]) -> bool:
 
 def _apply_command_policy(paths: RunPaths, command_text: str, policy_mode: str) -> bool:
     """Evaluate the command against the active policy. Returns True if blocked."""
-    policy = policy_engine.load_active_policy(paths.agentproof_dir)
+    policy = policy_engine.load_active_policy(paths.tracewall_dir)
     decision = policy_engine.evaluate_action(
         policy_engine.action_from_command(command_text), policy
     )
@@ -257,13 +257,13 @@ def _apply_command_policy(paths: RunPaths, command_text: str, policy_mode: str) 
              "reason": decision["reason"], "action_taken": "blocked"},
         )
         print(
-            f"AgentProof: BLOCKED by policy [{decision['rule_id']}] — {decision['reason']}",
+            f"tracewall: BLOCKED by policy [{decision['rule_id']}] — {decision['reason']}",
             file=os.sys.stderr,
         )
         return True
     if outcome == "alerted":
         print(
-            f"AgentProof: ALERT [{decision['rule_id']}] — {decision['reason']} (running anyway; alert mode)",
+            f"tracewall: ALERT [{decision['rule_id']}] — {decision['reason']} (running anyway; alert mode)",
             file=os.sys.stderr,
         )
     return False
@@ -394,12 +394,12 @@ def _write_event(events_file: Path, run_id: str, event_type: str,
     return event
 
 
-def record_policy_event(agentproof_dir: Path, event_type: str, payload: dict[str, Any]) -> dict[str, Any]:
+def record_policy_event(tracewall_dir: Path, event_type: str, payload: dict[str, Any]) -> dict[str, Any]:
     """Append a hash-chained entry to the project's policy audit log
-    (``.agentproof/policy-events.jsonl``). Independent of any run — the daemon
+    (``.tracewall/policy-events.jsonl``). Independent of any run — the daemon
     writes here when it observes a policy change or refuses an untrusted policy,
     so disabling the guardrail can't happen silently (P0.6)."""
-    return _write_event(Path(agentproof_dir) / "policy-events.jsonl", "policy", event_type, payload)
+    return _write_event(Path(tracewall_dir) / "policy-events.jsonl", "policy", event_type, payload)
 
 
 def read_events(run_id: str, cwd: Path | None = None) -> list[dict[str, Any]]:

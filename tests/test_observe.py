@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from agentproof.flow import build_action_flow
-from agentproof.observe import parse_strace
+from tracewall.flow import build_action_flow
+from tracewall.observe import parse_strace
 
 
 def test_parse_strace_extracts_effects(tmp_path: Path):

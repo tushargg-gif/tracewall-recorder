@@ -1,6 +1,6 @@
-# AgentProof for Codex — install & smoke test
+# Tracewall for Codex — install & smoke test
 
-Put AgentProof in front of OpenAI Codex. Codex's hook system is newer and narrower
+Put Tracewall in front of OpenAI Codex. Codex's hook system is newer and narrower
 than Claude Code's, so coverage is split across two mechanisms:
 
 - **Hook** — gates Codex's **Bash** commands (deny `cat .env`, installs, destructive
@@ -16,11 +16,11 @@ than Claude Code's, so coverage is split across two mechanisms:
 
 ---
 
-## 1. Install AgentProof
+## 1. Install Tracewall
 
 ```bash
 pip install -e .
-agentproof --help
+tracewall --help
 ```
 
 ## 2. Install the Codex hook
@@ -28,9 +28,9 @@ agentproof --help
 From your project:
 
 ```bash
-agentproof init
-agentproof install-codex                 # ask-mode defer (default)
-# or: agentproof install-codex --ask-mode deny
+tracewall init
+tracewall install-codex                 # ask-mode defer (default)
+# or: tracewall install-codex --ask-mode deny
 ```
 
 This writes `.codex/hooks.json` (PreToolUse/PostToolUse, matcher `Bash`) and enables
@@ -38,15 +38,15 @@ This writes `.codex/hooks.json` (PreToolUse/PostToolUse, matcher `Bash`) and ena
 
 **ask-mode** (Codex hooks can't "ask"):
 
-- `defer` *(default)* — AgentProof **denies** known-bad (secret reads); for risky-but-
+- `defer` *(default)* — Tracewall **denies** known-bad (secret reads); for risky-but-
   -ambiguous it allows and lets **Codex's own approval prompt** handle it. Least friction.
-- `deny` — AgentProof **blocks** risky-ambiguous outright too. Strictest.
+- `deny` — Tracewall **blocks** risky-ambiguous outright too. Strictest.
 
 Restart Codex.
 
 ## 3. Gate Codex's MCP tool calls
 
-For each MCP server in your Codex config, launch it **through** AgentProof instead of
+For each MCP server in your Codex config, launch it **through** Tracewall instead of
 directly. In `~/.codex/config.toml`:
 
 ```toml
@@ -55,7 +55,7 @@ directly. In `~/.codex/config.toml`:
 # command = "jira-mcp-server"
 
 [mcp_servers.jira]
-command = "agentproof"
+command = "tracewall"
 args = ["mcp", "stdio", "--server-name", "jira", "--ask-mode", "defer", "--", "jira-mcp-server"]
 ```
 
@@ -76,10 +76,10 @@ In Codex, ask it to:
 Then review and teach it:
 
 ```bash
-agentproof flow                  # the captured timeline (Bash + MCP), attributed to the agent
-agentproof review                # allow/block, then:
-agentproof recommend --accept    # your verdicts become rules; applied on the next run
-agentproof policy                # every rule in force
+tracewall flow                  # the captured timeline (Bash + MCP), attributed to the agent
+tracewall review                # allow/block, then:
+tracewall recommend --accept    # your verdicts become rules; applied on the next run
+tracewall policy                # every rule in force
 ```
 
 ## What's covered
@@ -87,7 +87,7 @@ agentproof policy                # every rule in force
 | Surface | Covered? | How |
 |---|---|---|
 | Bash commands (incl. `cat .env`, installs) | ✅ | Codex hook (deny only) |
-| MCP tool calls | ✅ | `agentproof mcp stdio` proxy (deny/allow) |
+| MCP tool calls | ✅ | `tracewall mcp stdio` proxy (deny/allow) |
 | Read tool / WebSearch / Write | ⛔ not yet | needs OS-level layer; Codex's sandbox limits these natively |
 | "Ask"/escalate via the hook | ⛔ | Codex hooks can't ask — use `--ask-mode`, or rely on Codex's approval |
 

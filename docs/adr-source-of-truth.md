@@ -9,7 +9,7 @@ The **append-only, hash-chained JSONL event log on the developer's machine is au
 
 ## Why
 
-- **Trust + local-first.** AgentProof's promise is "runs fully local, no account required" (P0.5). A cloud-authoritative design contradicts that and makes the network a hard dependency for a guardrail that must work offline.
+- **Trust + local-first.** Tracewall's promise is "runs fully local, no account required" (P0.5). A cloud-authoritative design contradicts that and makes the network a hard dependency for a guardrail that must work offline.
 - **One source can't drift.** Two writers (local + cloud) means two truths that can diverge — the worst failure mode for an *audit* product. One authoritative writer, one chain, verified anywhere.
 - **The chain already gives us portability.** Because every event carries `prev_event_hash` + `event_hash`, anyone holding the JSONL can verify it independently — the server gets integrity for free without owning the data.
 

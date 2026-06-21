@@ -6,9 +6,9 @@ the hook uses (learned policy + safe defaults), recorded, and **blocked** when t
 decision is deny. Use it by configuring the agent to launch this proxy in place of
 the real server:
 
-    agentproof mcp stdio --server-name jira -- <real server command>
+    tracewall mcp stdio --server-name jira -- <real server command>
 
-It attaches to the active AgentProof run (creating one if needed), so tool calls
+It attaches to the active tracewall run (creating one if needed), so tool calls
 land in the same timeline as everything else.
 """
 
@@ -20,11 +20,11 @@ import json
 import subprocess
 import sys
 
-from agentproof.enforce import action_from_tool
-from agentproof.events import redact_secrets
-from agentproof.hook import decide, ensure_run
-from agentproof.mcp_policy import block_error, method_event_type
-from agentproof.recorder import record_event
+from tracewall.enforce import action_from_tool
+from tracewall.events import redact_secrets
+from tracewall.hook import decide, ensure_run
+from tracewall.mcp_policy import block_error, method_event_type
+from tracewall.recorder import record_event
 
 
 def run_stdio_proxy(server_name: str, command: list[str], cwd: Path | None = None,
@@ -91,7 +91,7 @@ def handle_stdio_message(project_root: Path, run_id: str, server_name: str,
             record_event("mcp.error", {"agent": server_name, "source": source, "server_name": server_name,
                                        "error": "blocked by policy", "rule_id": d["rule_id"]},
                          run_id=run_id, cwd=project_root)
-            return block_error(req_id, d["reason"] or "Blocked by AgentProof policy.")
+            return block_error(req_id, d["reason"] or "Blocked by tracewall policy.")
     else:
         record_event(method_event_type(method),
                      {"agent": server_name, "source": source, "server_name": server_name, "request": redact_secrets(request)},

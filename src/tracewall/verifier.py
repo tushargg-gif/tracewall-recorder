@@ -3,11 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from agentproof.checks import check, sanitize_name
-from agentproof.contracts import TaskContract
-from agentproof.events import event_type_counts, verify_event_chain
-from agentproof.policy import violations_from_checks
-from agentproof.recorder import (
+from tracewall.checks import check, sanitize_name
+from tracewall.contracts import TaskContract
+from tracewall.events import event_type_counts, verify_event_chain
+from tracewall.policy import violations_from_checks
+from tracewall.recorder import (
     diff_snapshots,
     latest_run_id,
     paths_for_run,
@@ -16,8 +16,8 @@ from agentproof.recorder import (
     snapshot_files,
     write_json,
 )
-from agentproof.scoring import score_run
-from agentproof.sensitive import looks_secret_path
+from tracewall.scoring import score_run
+from tracewall.sensitive import looks_secret_path
 
 
 PACKAGE_FILES = {

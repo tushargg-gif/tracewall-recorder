@@ -1,6 +1,6 @@
 # MCP Proxy
 
-AgentProof Recorder can sit between an orchestrator and MCP tools.
+tracewall Recorder can sit between an orchestrator and MCP tools.
 
 The goal is to record MCP evidence and enforce simple policies before tool calls are trusted.
 
@@ -9,13 +9,13 @@ The goal is to record MCP evidence and enforce simple policies before tool calls
 Start the local sidecar:
 
 ```bash
-agentproof sidecar --host 127.0.0.1 --port 8797 --root .agentproof
+tracewall sidecar --host 127.0.0.1 --port 8797 --root .tracewall
 ```
 
 Use an auth token if the sidecar is exposed beyond localhost:
 
 ```bash
-agentproof sidecar --host 0.0.0.0 --port 8797 --auth-token "$AGENTPROOF_TOKEN"
+tracewall sidecar --host 0.0.0.0 --port 8797 --auth-token "$tracewall_TOKEN"
 ```
 
 ## Streamable HTTP Proxy
@@ -57,7 +57,7 @@ DNS resolution is not currently performed. Hostname validation is intentionally 
 Restrict proxy registration to known hosts:
 
 ```bash
-agentproof sidecar \
+tracewall sidecar \
   --auth-token test \
   --allowed-mcp-target-host mcp.example.com
 ```

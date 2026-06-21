@@ -1,4 +1,4 @@
-"""P0.1 — agentproofd daemon: policy cache, decide parity, UDS round-trip, latency."""
+"""P0.1 — tracewalld daemon: policy cache, decide parity, UDS round-trip, latency."""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ import time
 import uuid
 from pathlib import Path
 
-from agentproof import daemon, enforce, hook
-from agentproof.recorder import paths_for_run
+from tracewall import daemon, enforce, hook
+from tracewall.recorder import paths_for_run
 
 
 def _short_sock() -> str:
@@ -28,7 +28,7 @@ def _decision(resp: dict) -> str:
 
 
 def test_policy_cache_invalidates_on_change(tmp_path: Path) -> None:
-    adir = paths_for_run(cwd=tmp_path).agentproof_dir
+    adir = paths_for_run(cwd=tmp_path).tracewall_dir
     cache = daemon.PolicyCache()
 
     first = cache.get(adir)            # no policy file yet

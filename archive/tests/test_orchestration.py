@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from agentproof.events import redact_secrets
-from agentproof.orchestration import apply_automatic_amendment, build_policy_from_template
+from tracewall.events import redact_secrets
+from tracewall.orchestration import apply_automatic_amendment, build_policy_from_template
 
 
 def demo_workers():

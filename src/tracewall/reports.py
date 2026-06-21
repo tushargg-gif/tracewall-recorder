@@ -3,8 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from agentproof.recorder import latest_run_id, paths_for_run, read_json, write_json
-from agentproof.verifier import verify_run
+from tracewall.recorder import latest_run_id, paths_for_run, read_json, write_json
+from tracewall.verifier import verify_run
 
 
 def generate_report(run_id: str | None = None, cwd: Path | None = None) -> dict[str, Path]:
@@ -16,8 +16,8 @@ def generate_report(run_id: str | None = None, cwd: Path | None = None) -> dict[
     markdown = render_markdown(run, verification)
     report_md = paths.run_dir / "report.md"
     report_json = paths.run_dir / "report.json"
-    public_report_md = paths.agentproof_dir / "reports" / f"{resolved_run_id}.md"
-    public_report_json = paths.agentproof_dir / "reports" / f"{resolved_run_id}.json"
+    public_report_md = paths.tracewall_dir / "reports" / f"{resolved_run_id}.md"
+    public_report_json = paths.tracewall_dir / "reports" / f"{resolved_run_id}.json"
     report_md.write_text(markdown, encoding="utf-8")
     public_report_md.write_text(markdown, encoding="utf-8")
     payload = {"run": run, "verification": verification}
@@ -34,7 +34,7 @@ def render_markdown(run: dict[str, Any], verification: dict[str, Any]) -> str:
         if check["status"] in {"failed", "warning"}
     ]
     lines = [
-        "# AgentProof Recorder Report",
+        "# tracewall Recorder Report",
         "",
         f"Task: {run.get('task_title', run.get('task_id'))}",
         f"Task ID: {run.get('task_id')}",

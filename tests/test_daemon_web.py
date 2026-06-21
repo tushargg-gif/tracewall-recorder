@@ -7,8 +7,8 @@ import urllib.request
 from pathlib import Path
 from urllib.parse import quote
 
-from agentproof import daemon, recorder
-from agentproof.hook import run_pre
+from tracewall import daemon, recorder
+from tracewall.hook import run_pre
 
 
 def _serve() -> tuple[daemon._HTTPServer, int]:
@@ -30,7 +30,7 @@ def test_daemon_serves_review_page_and_api(tmp_path: Path):
     q = f"?cwd={quote(str(tmp_path))}"
     try:
         status, body = _get(port, f"/review{q}")
-        assert status == 200 and b"AgentProof" in body          # editor-agnostic page
+        assert status == 200 and b"tracewall" in body          # editor-agnostic page
 
         status, body = _get(port, f"/api/state{q}")
         state = json.loads(body)

@@ -2,7 +2,7 @@
 
 A task contract describes what the agent is supposed to do and what it is allowed to touch.
 
-AgentProof Recorder uses the contract during verification. Vague tasks produce weak evidence, so make the contract narrow when possible.
+Tracewall Recorder uses the contract during verification. Vague tasks produce weak evidence, so make the contract narrow when possible.
 
 ## Minimal Example
 

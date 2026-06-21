@@ -16,12 +16,12 @@ from pathlib import Path
 from typing import Any
 import json
 
-from agentproof import enforce
-from agentproof.events import now_iso
-from agentproof.flow import action_flow
-from agentproof.insight import analyze_action, analyze_run
-from agentproof.recorder import paths_for_run, read_json, write_json
-from agentproof.sensitive import looks_secret_token
+from tracewall import enforce
+from tracewall.events import now_iso
+from tracewall.flow import action_flow
+from tracewall.insight import analyze_action, analyze_run
+from tracewall.recorder import paths_for_run, read_json, write_json
+from tracewall.sensitive import looks_secret_token
 
 VALID_DECISIONS = {"allow", "block", "clear"}
 
@@ -99,7 +99,7 @@ def review_state(run_id: str, cwd: Path | None = None) -> dict[str, Any]:
     flow = action_flow(run_id, cwd)
     actions = flow["actions"]
     verdicts = load_verdicts(run_id, cwd)["verdicts"]
-    active_policy = enforce.load_active_policy(paths_for_run(run_id, cwd).agentproof_dir)
+    active_policy = enforce.load_active_policy(paths_for_run(run_id, cwd).tracewall_dir)
 
     reach: dict[tuple[str, str], int] = {}
     for action in actions:
@@ -188,7 +188,7 @@ def render_review_html(state: dict[str, Any], live: bool = False) -> str:
 _PAGE = r"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>AgentProof — Run Review</title>
+<title>tracewall — Run Review</title>
 <style>
   :root{ --navy:#0B1437; --ink:#101828; --muted:#5B677A; --faint:#8A97A8; --line:#E5E9F0;
          --bg:#F5F7FA; --card:#FFFFFF; --teal:#0D9488; --high:#E11D48; --med:#D97706; --low:#0D9488; }
@@ -267,7 +267,7 @@ _PAGE = r"""<!doctype html>
   .foot{color:var(--faint);font-size:12px;text-align:center;margin:20px 0}
 </style></head>
 <body>
-<header><h1>AgentProof — Run Review</h1>
+<header><h1>tracewall — Run Review</h1>
   <div class="sub">Review the agent's execution, step by step. Confirm or overrule each action — your verdicts become the policy.</div>
 </header>
 <div class="wrap">
@@ -413,7 +413,7 @@ def serve_review(run_id: str, host: str = "127.0.0.1", port: int = 8898, cwd: Pa
             pass
 
     server = HTTPServer((host, port), Handler)
-    print(f"AgentProof review for {run_id} → http://{host}:{port}  (Ctrl-C to stop)")
+    print(f"tracewall review for {run_id} → http://{host}:{port}  (Ctrl-C to stop)")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
@@ -446,7 +446,7 @@ def export_policy_html(policy: dict[str, Any], out_path: Path) -> Path:
 _POLICY_PAGE = r"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>AgentProof — Active Policy</title>
+<title>tracewall — Active Policy</title>
 <style>
   :root{ --navy:#0B1437; --ink:#101828; --muted:#5B677A; --faint:#8A97A8; --line:#E5E9F0;
          --bg:#F5F7FA; --card:#FFFFFF; --teal:#0D9488; --high:#E11D48; }
@@ -476,7 +476,7 @@ _POLICY_PAGE = r"""<!doctype html>
   .empty{background:#fff;border:1px solid var(--line);border-radius:13px;padding:46px;text-align:center;color:var(--muted)}
 </style></head>
 <body>
-<header><h1>AgentProof — Active Policy</h1>
+<header><h1>tracewall — Active Policy</h1>
   <div class="sub">Every rule currently in force. These are enforced on every future run; commands and tool calls are checked against them.</div>
 </header>
 <div class="wrap">
@@ -507,7 +507,7 @@ function render(){
   });
   rows.sort((a,b)=> (a.decision!=='block')-(b.decision!=='block') || ((a.label||'')<(b.label||'')?-1:1));
   const el=document.getElementById('table');
-  if(!rows.length){ el.innerHTML='<div class="empty">No rules match. Accept recommendations with <span class="mono">agentproof recommend --accept</span>.</div>'; return; }
+  if(!rows.length){ el.innerHTML='<div class="empty">No rules match. Accept recommendations with <span class="mono">tracewall recommend --accept</span>.</div>'; return; }
   let h='<table><thead><tr><th>Decision</th><th>Type</th><th>Target</th><th>Reason</th><th>Origin</th><th>Added</th></tr></thead><tbody>';
   for(const r of rows){ const m=r.match||{};
     h+=`<tr>

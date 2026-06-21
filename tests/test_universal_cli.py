@@ -13,7 +13,7 @@ def run_cli(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
     env["PYTHONPATH"] = str(ROOT / "src")
     return subprocess.run(
-        [sys.executable, "-m", "agentproof", *args],
+        [sys.executable, "-m", "tracewall", *args],
         cwd=cwd,
         text=True,
         capture_output=True,
@@ -25,7 +25,7 @@ def run_cli(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
 def test_cli_records_universal_events(tmp_path: Path):
     init = run_cli(tmp_path, "init")
     assert init.returncode == 0, init.stderr
-    (tmp_path / ".agentproof" / "task.yml").write_text(
+    (tmp_path / ".tracewall" / "task.yml").write_text(
         """
 task_id: NET-1
 title: Fetch public data

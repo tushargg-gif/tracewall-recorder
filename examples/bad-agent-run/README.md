@@ -1,6 +1,6 @@
 # Bad Agent Run
 
-This example shows the type of run AgentProof Recorder should flag before review or merge.
+This example shows the type of run tracewall Recorder should flag before review or merge.
 
 The agent appears to finish the task, but the evidence shows:
 

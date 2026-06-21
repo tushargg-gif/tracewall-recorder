@@ -3,14 +3,14 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from agentproof import daemon
+from tracewall import daemon
 
 
 def test_macos_spec_is_a_launchd_plist():
     path, content, loader = daemon.service_spec("Darwin", dest_dir=Path("/x"))
     assert path.name == f"{daemon.SERVICE_LABEL}.plist"
     assert "<plist" in content and daemon.SERVICE_LABEL in content
-    assert sys.executable in content and "agentproof" in content
+    assert sys.executable in content and "tracewall" in content
     assert loader[0] == "launchctl"
 
 
@@ -18,7 +18,7 @@ def test_linux_spec_is_a_systemd_user_unit():
     path, content, loader = daemon.service_spec("Linux", dest_dir=Path("/x"))
     assert path.name == daemon.SYSTEMD_UNIT_NAME
     assert "[Service]" in content
-    assert f"{sys.executable} -m agentproof daemon run" in content
+    assert f"{sys.executable} -m tracewall daemon run" in content
     assert loader[:2] == ["systemctl", "--user"]
 
 

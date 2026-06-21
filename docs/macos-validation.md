@@ -10,28 +10,28 @@ Prereqs: Python 3.10+, this repo checked out. Takes ~5 minutes.
 cd /path/to/agent-performance-monitor
 pip install -e .
 mkdir -p /tmp/ap-demo && cd /tmp/ap-demo
-agentproof init
+tracewall init
 printf 'SECRET=hunter2\n' > .env        # a fake secret for the smoke test
 ```
 
-**Expect:** `init` prints that it created `.agentproof/`.
+**Expect:** `init` prints that it created `.tracewall/`.
 
 ## 2. Install the daemon as a launchd service
 
 ```bash
-agentproof daemon install
-ls ~/Library/LaunchAgents/dev.agentproof.daemon.plist
-launchctl list | grep agentproof
+tracewall daemon install
+ls ~/Library/LaunchAgents/dev.tracewall.daemon.plist
+launchctl list | grep tracewall
 ```
 
-**Expect:** the install prints "installed as a launchd service and started" (or, if `launchctl` is fussy, the path + a manual `launchctl load` hint); the plist exists; `launchctl list` shows a `dev.agentproof.daemon` row with a PID.
+**Expect:** the install prints "installed as a launchd service and started" (or, if `launchctl` is fussy, the path + a manual `launchctl load` hint); the plist exists; `launchctl list` shows a `dev.tracewall.daemon` row with a PID.
 
 ## 3. Confirm it's running and answering
 
 ```bash
-agentproof daemon status
+tracewall daemon status
 printf '{"tool_name":"Bash","tool_input":{"command":"cat .env"}}' \
-  | agentproof hook --source claude-code
+  | tracewall hook --source claude-code
 ```
 
 **Expect:** `status` shows `"running": true` with a socket path; the hook returns JSON whose `permissionDecision` is **`deny`** (reading `.env` is blocked by default) — and it should feel instant (the warm daemon, no Python cold start).
@@ -40,11 +40,11 @@ printf '{"tool_name":"Bash","tool_input":{"command":"cat .env"}}' \
 
 ```bash
 # Option A (fast): kill the process, confirm launchd respawns it (KeepAlive)
-kill "$(launchctl list | awk '/dev.agentproof.daemon/{print $1}')"
-sleep 2 && agentproof daemon status      # expect: still running (new PID)
+kill "$(launchctl list | awk '/dev.tracewall.daemon/{print $1}')"
+sleep 2 && tracewall daemon status      # expect: still running (new PID)
 
 # Option B (full): log out and back in (or reboot), then:
-agentproof daemon status                 # expect: running, without you starting it
+tracewall daemon status                 # expect: running, without you starting it
 ```
 
 **Expect:** the daemon is running again **without you starting it** — that's `KeepAlive`/`RunAtLoad` doing their job, and the proof that governance is independent of any editor.
@@ -52,8 +52,8 @@ agentproof daemon status                 # expect: running, without you starting
 ## 5. Guard (macOS sandbox-exec) — optional but worth it
 
 ```bash
-agentproof guard -- bash -c 'cat /tmp/ap-demo/.env'
-agentproof flow                          # look for an os.file.denied entry
+tracewall guard -- bash -c 'cat /tmp/ap-demo/.env'
+tracewall flow                          # look for an os.file.denied entry
 ```
 
 **Expect:** the read is denied by the OS sandbox and shows up as an `os.file.denied` action in the flow — ground-truth enforcement, no agent cooperation needed. (If `sandbox-exec` is unavailable, `guard` fails closed rather than running unprotected.)
@@ -61,11 +61,11 @@ agentproof flow                          # look for an os.file.denied entry
 ## 6. Clean up
 
 ```bash
-agentproof daemon uninstall
+tracewall daemon uninstall
 rm -rf /tmp/ap-demo
 ```
 
-**Expect:** "Removed launchd unit"; `launchctl list | grep agentproof` is now empty.
+**Expect:** "Removed launchd unit"; `launchctl list | grep tracewall` is now empty.
 
 ---
 

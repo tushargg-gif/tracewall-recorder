@@ -5,23 +5,23 @@ import argparse
 import json
 import sys
 
-from agentproof.contracts import load_contract, write_default_contract
-from agentproof.events import parse_payload
-from agentproof import enforce
-from agentproof.enforce import POLICY_FILENAME
-from agentproof.flow import action_flow, render_flow
-from agentproof.guard import run_guard
-from agentproof.hook import run_post, run_pre
-from agentproof.observe import run_observe
-from agentproof.mcp_stdio import run_stdio_proxy
-from agentproof.recommend import (
+from tracewall.contracts import load_contract, write_default_contract
+from tracewall.events import parse_payload
+from tracewall import enforce
+from tracewall.enforce import POLICY_FILENAME
+from tracewall.flow import action_flow, render_flow
+from tracewall.guard import run_guard
+from tracewall.hook import run_post, run_pre
+from tracewall.observe import run_observe
+from tracewall.mcp_stdio import run_stdio_proxy
+from tracewall.recommend import (
     accept_recommendation,
     recommend_policy,
     render_recommendations,
     save_recommended_policy,
 )
-from agentproof.review import export_review_html, review_state, serve_review, set_verdict
-from agentproof.recorder import (
+from tracewall.review import export_review_html, review_state, serve_review, set_verdict
+from tracewall.recorder import (
     create_run,
     latest_run_id,
     paths_for_run,
@@ -29,22 +29,22 @@ from agentproof.recorder import (
     record_command,
     stop_run,
 )
-from agentproof.reports import generate_report
-from agentproof.verifier import verify_run
+from tracewall.reports import generate_report
+from tracewall.verifier import verify_run
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="agentproof",
-        description="AgentProof Recorder: record, verify, score, and report on agent work.",
+        prog="tracewall",
+        description="tracewall Recorder: record, verify, score, and report on agent work.",
     )
     subcommands = parser.add_subparsers(dest="command", required=True)
 
-    init = subcommands.add_parser("init", help="Create a starter AgentProof Recorder task contract.")
+    init = subcommands.add_parser("init", help="Create a starter tracewall Recorder task contract.")
     init.add_argument("--force", action="store_true", help="Overwrite existing task contract.")
 
     start = subcommands.add_parser("start", help="Start recording an agent run.")
-    start.add_argument("--task-file", default=".agentproof/task.yml", help="Task contract path.")
+    start.add_argument("--task-file", default=".tracewall/task.yml", help="Task contract path.")
     start.add_argument("--agent", default="unknown", help="Agent name or provider.")
     start.add_argument(
         "--enforce",
@@ -128,7 +128,7 @@ def build_parser() -> argparse.ArgumentParser:
     hook.add_argument("--source", default="claude-code", help="Which coding agent this hook serves (claude-code, codex, …); recorded on every action.")
     hook.add_argument("--no-daemon", action="store_true", help="Decide in-process instead of routing to the running daemon.")
 
-    daemon = subcommands.add_parser("daemon", help="Run the always-on local decision daemon (agentproofd).")
+    daemon = subcommands.add_parser("daemon", help="Run the always-on local decision daemon (tracewalld).")
     daemon_sub = daemon.add_subparsers(dest="daemon_command", required=True)
     d_run = daemon_sub.add_parser("run", help="Run the daemon in the foreground (used by the OS service).")
     d_run.add_argument("--http-port", type=int, default=None, help="Localhost HTTP port (default 8787; falls back to an ephemeral port if taken).")
@@ -138,10 +138,10 @@ def build_parser() -> argparse.ArgumentParser:
     daemon_sub.add_parser("install", help="Install the daemon as an always-on OS service (launchd on macOS, systemd --user on Linux).")
     daemon_sub.add_parser("uninstall", help="Remove the daemon's OS service.")
 
-    install_hook = subcommands.add_parser("install-hook", help="Install AgentProof as a Claude Code hook (.claude/settings.json).")
+    install_hook = subcommands.add_parser("install-hook", help="Install tracewall as a Claude Code hook (.claude/settings.json).")
     install_hook.add_argument("--global", dest="global_install", action="store_true", help="Install to ~/.claude instead of the project.")
 
-    install_codex = subcommands.add_parser("install-codex", help="Install AgentProof as a Codex hook (.codex/hooks.json).")
+    install_codex = subcommands.add_parser("install-codex", help="Install tracewall as a Codex hook (.codex/hooks.json).")
     install_codex.add_argument("--global", dest="global_install", action="store_true", help="Install to ~/.codex instead of the project.")
     install_codex.add_argument("--ask-mode", choices=["deny", "defer"], default="defer",
                                help="Codex hooks can't 'ask': deny risky actions, or defer to Codex's own approval (default).")
@@ -207,14 +207,14 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "mcp":
             return cmd_mcp(args)
     except Exception as exc:
-        print(f"agentproof: error: {exc}", file=sys.stderr)
+        print(f"tracewall: error: {exc}", file=sys.stderr)
         return 1
     return 0
 
 
 def cmd_init(args: argparse.Namespace) -> int:
     paths = paths_for_run(cwd=Path.cwd())
-    task_path = paths.agentproof_dir / "task.yml"
+    task_path = paths.tracewall_dir / "task.yml"
     created = write_default_contract(task_path, force=args.force)
     if created:
         print(f"Created task contract: {task_path}")
@@ -226,7 +226,7 @@ def cmd_init(args: argparse.Namespace) -> int:
 def cmd_start(args: argparse.Namespace) -> int:
     contract = load_contract(Path(args.task_file))
     run = create_run(contract, args.agent, cwd=Path.cwd(), enforce=args.enforce)
-    print(f"Started AgentProof Recorder run: {run['run_id']}")
+    print(f"Started tracewall Recorder run: {run['run_id']}")
     print(f"Task: {run['task_id']} - {run['task_title']}")
     if args.enforce:
         enforcement = run["enforcement"]
@@ -246,7 +246,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     if command and command[0] == "--":
         command = command[1:]
     if not command:
-        raise ValueError("Usage: agentproof run -- <command>")
+        raise ValueError("Usage: tracewall run -- <command>")
     return record_command(command, cwd=Path.cwd(), enforce=args.enforce, policy_mode=args.policy_mode)
 
 
@@ -259,7 +259,7 @@ def cmd_event(args: argparse.Namespace) -> int:
 
 def cmd_stop(args: argparse.Namespace) -> int:
     run = stop_run(args.run_id, args.final_response, cwd=Path.cwd())
-    print(f"Stopped AgentProof Recorder run: {run['run_id']}")
+    print(f"Stopped tracewall Recorder run: {run['run_id']}")
     print(f"Changed files: {len(run.get('changed_files') or [])}")
     return 0
 
@@ -324,7 +324,7 @@ def cmd_guard(args: argparse.Namespace) -> int:
     if command and command[0] == "--":
         command = command[1:]
     if not command:
-        raise ValueError("Usage: agentproof guard -- <agent command>")
+        raise ValueError("Usage: tracewall guard -- <agent command>")
     return run_guard(command, cwd=Path.cwd(), source=args.source)
 
 
@@ -333,7 +333,7 @@ def cmd_observe(args: argparse.Namespace) -> int:
     if command and command[0] == "--":
         command = command[1:]
     if not command:
-        raise ValueError("Usage: agentproof observe -- <agent command>")
+        raise ValueError("Usage: tracewall observe -- <agent command>")
     return run_observe(command, cwd=Path.cwd(), source=args.source)
 
 
@@ -344,7 +344,7 @@ def cmd_hook(args: argparse.Namespace) -> int:
         # Fast path: let the warm daemon decide (no Python engine cold start, no
         # policy reload). If it isn't running or errors, fall through in-process.
         try:
-            from agentproof import daemon
+            from tracewall import daemon
             if daemon.is_running():
                 out = daemon.decide_via_daemon(
                     stdin_text, Path.cwd(), args.ask_mode, args.source,
@@ -360,7 +360,7 @@ def cmd_hook(args: argparse.Namespace) -> int:
 
 
 def cmd_daemon(args: argparse.Namespace) -> int:
-    from agentproof import daemon
+    from tracewall import daemon
     if args.daemon_command == "run":
         port = None if args.no_http else (args.http_port if args.http_port is not None else daemon.DEFAULT_HTTP_PORT)
         try:
@@ -378,7 +378,7 @@ def cmd_daemon(args: argparse.Namespace) -> int:
     if args.daemon_command == "install":
         info = daemon.install_service()
         if info["loaded"]:
-            print(f"AgentProof daemon installed as a {info['backend']} service and started ({info['path']}).")
+            print(f"tracewall daemon installed as a {info['backend']} service and started ({info['path']}).")
         else:
             print(f"Wrote {info['backend']} unit to {info['path']}.")
             if info["hint"]:
@@ -395,7 +395,7 @@ def cmd_install_codex(args: argparse.Namespace) -> int:
     base = Path.home() if args.global_install else Path.cwd()
     codex_dir = base / ".codex"
     codex_dir.mkdir(parents=True, exist_ok=True)
-    command = f"{sys.executable} -m agentproof hook --source codex --ask-mode {args.ask_mode}"
+    command = f"{sys.executable} -m tracewall hook --source codex --ask-mode {args.ask_mode}"
 
     # 1. hooks.json — Codex PreToolUse currently only fires for Bash
     hooks_path = codex_dir / "hooks.json"
@@ -411,7 +411,7 @@ def cmd_install_codex(args: argparse.Namespace) -> int:
         groups = hooks.setdefault(event, [])
         for group in groups:
             for h in group.get("hooks", []):
-                if "agentproof" in str(h.get("command", "")):
+                if "tracewall" in str(h.get("command", "")):
                     return
         groups.append({"matcher": "Bash", "hooks": [{"type": "command", "command": cmd}]})
 
@@ -426,11 +426,11 @@ def cmd_install_codex(args: argparse.Namespace) -> int:
         block = "\n[features]\ncodex_hooks = true\n" if config_text and not config_text.endswith("\n") else "[features]\ncodex_hooks = true\n"
         config_path.write_text((config_text + ("\n" if config_text and not config_text.endswith("\n") else "") + block).lstrip("\n"), encoding="utf-8")
 
-    print(f"Installed AgentProof Codex hook → {hooks_path}")
+    print(f"Installed tracewall Codex hook → {hooks_path}")
     print(f"Enabled codex_hooks in → {config_path}")
     print(f"ask-mode = {args.ask_mode}  (Codex hooks can't 'ask'; deny = block risky, defer = let Codex prompt)")
     print("Note: Codex's PreToolUse only intercepts Bash today — it catches `cat .env`, installs, etc.,")
-    print("but not the Read/WebSearch tools. Route MCP tool calls through `agentproof mcp stdio` for those.")
+    print("but not the Read/WebSearch tools. Route MCP tool calls through `tracewall mcp stdio` for those.")
     print("Restart Codex to load it.")
     return 0
 
@@ -445,31 +445,31 @@ def cmd_install_hook(args: argparse.Namespace) -> int:
             data = json.loads(settings.read_text(encoding="utf-8"))
         except (ValueError, OSError):
             data = {}
-    command = f"{sys.executable} -m agentproof hook --source claude-code"
+    command = f"{sys.executable} -m tracewall hook --source claude-code"
     hooks = data.setdefault("hooks", {})
 
     def ensure(event: str, cmd: str) -> None:
         groups = hooks.setdefault(event, [])
         for group in groups:
             for h in group.get("hooks", []):
-                if "agentproof" in str(h.get("command", "")):
+                if "tracewall" in str(h.get("command", "")):
                     return
         groups.append({"matcher": "*", "hooks": [{"type": "command", "command": cmd}]})
 
     ensure("PreToolUse", command)
     ensure("PostToolUse", command + " --post")
     settings.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
-    print(f"Installed AgentProof hook → {settings}")
-    print("Every Claude Code tool call (terminal or VS Code) now passes through AgentProof.")
+    print(f"Installed tracewall hook → {settings}")
+    print("Every Claude Code tool call (terminal or VS Code) now passes through tracewall.")
     print("Restart Claude Code or run /hooks to load it.")
     return 0
 
 
 def cmd_policy(args: argparse.Namespace) -> int:
-    agentproof_dir = paths_for_run(cwd=Path.cwd()).agentproof_dir
-    policy = enforce.load_active_policy(agentproof_dir)
+    tracewall_dir = paths_for_run(cwd=Path.cwd()).tracewall_dir
+    policy = enforce.load_active_policy(tracewall_dir)
     if args.export:
-        from agentproof.review import export_policy_html
+        from tracewall.review import export_policy_html
         out = export_policy_html(policy, Path(args.export))
         print(f"Policies page written: {out}")
         return 0
@@ -492,7 +492,7 @@ def cmd_recommend(args: argparse.Namespace) -> int:
         print(render_recommendations(recommendation))
         print(f"\nSaved: {path}")
         if args.accept:
-            print(f"Accepted {len(policy['rules'])} rule(s) into the active policy (.agentproof/{POLICY_FILENAME}).")
+            print(f"Accepted {len(policy['rules'])} rule(s) into the active policy (.tracewall/{POLICY_FILENAME}).")
     return 0
 
 

@@ -3,8 +3,8 @@
 ## Terminal Commands
 
 ```bash
-git clone https://github.com/tushargg-gif/AgentProof-Recorder
-cd AgentProof-Recorder
+git clone https://github.com/tushargg-gif/tracewall-Recorder
+cd tracewall-Recorder
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install -e ".[dev]"
@@ -21,13 +21,13 @@ python3 agent-demo/master_agent_demo.py --demo
 
 **0:00-0:15**
 
-"This is AgentProof Recorder. It gives a master agent an evidence layer while it delegates work to smaller agents."
+"This is tracewall Recorder. It gives a master agent an evidence layer while it delegates work to smaller agents."
 
-"For this recording, the agents are scripted so the run is reproducible. AgentProof's recording and verification are the real system under test."
+"For this recording, the agents are scripted so the run is reproducible. tracewall's recording and verification are the real system under test."
 
 **0:15-0:35**
 
-"The scripted Master Agent reads the local repo context, selects a docs-only policy template, and starts an AgentProof run."
+"The scripted Master Agent reads the local repo context, selects a docs-only policy template, and starts an tracewall run."
 
 **0:35-0:55**
 
@@ -39,11 +39,11 @@ python3 agent-demo/master_agent_demo.py --demo
 
 **1:20-1:45**
 
-"AgentProof does not trust the claim. It verifies actual before-and-after file evidence, sees package.json, and attributes the violation to the Rogue Agent."
+"tracewall does not trust the claim. It verifies actual before-and-after file evidence, sees package.json, and attributes the violation to the Rogue Agent."
 
 **1:45-2:00**
 
-"The final decision is Fail. That is the correct result: AgentProof caught a forbidden dependency-file change before review or merge."
+"The final decision is Fail. That is the correct result: tracewall caught a forbidden dependency-file change before review or merge."
 
 ## Key Moments To Zoom In On
 

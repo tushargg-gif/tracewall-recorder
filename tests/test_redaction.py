@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from agentproof.events import (
+from tracewall.events import (
     event_hash,
     mask_secret_material,
     normalize_event,

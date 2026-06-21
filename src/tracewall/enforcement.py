@@ -1,7 +1,7 @@
 """Real-time enforcement: confine an agent's process tree so it cannot read,
 write, or delete sensitive files.
 
-AgentProof launches the agent, so it can confine the *process tree it spawns*
+tracewall launches the agent, so it can confine the *process tree it spawns*
 without any kernel driver, EDR, or elevated privilege. This module generates an
 OS sandbox profile from a list of sensitive path patterns and runs a command
 under it. Any read/write/unlink against a sensitive path is denied by the
@@ -29,7 +29,7 @@ Backends
 Scope and honest limits
     * Confines only processes this module spawns and their children. It does not
       police pre-existing processes -- it does not need to, because the agent is
-      a child of AgentProof.
+      a child of tracewall.
     * Default-deny on sensitive paths, default-allow on everything else. This is
       a guardrail against accidental/rogue access, not a containment boundary for
       a determined attacker who controls the agent binary.
@@ -44,10 +44,10 @@ import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from agentproof.sensitive import SECRET_PATTERNS
+from tracewall.sensitive import SECRET_PATTERNS
 
 # What the enforcer blocks is, by construction, exactly what the verifier flags:
-# both draw from agentproof.sensitive.SECRET_PATTERNS.
+# both draw from tracewall.sensitive.SECRET_PATTERNS.
 DEFAULT_SENSITIVE_PATTERNS: tuple[str, ...] = SECRET_PATTERNS
 
 # Exit code returned when enforcement itself refuses to run (distinct from any
@@ -105,7 +105,7 @@ class GuardProfile:
         Used by enumerate-at-launch backends (bubblewrap). Skips VCS/build dirs
         so the scan stays cheap. Regex backends (sandbox-exec) do not need this.
         """
-        skip = {".git", ".agentproof", ".hg", ".svn", "node_modules",
+        skip = {".git", ".tracewall", ".hg", ".svn", "node_modules",
                 ".venv", "venv", "__pycache__", "dist", "build"}
         files: list[Path] = []
         dirs: list[Path] = []

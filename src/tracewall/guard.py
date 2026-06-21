@@ -1,4 +1,4 @@
-"""`agentproof guard -- <agent>` — run a coding agent inside an OS sandbox.
+"""`tracewall guard -- <agent>` — run a coding agent inside an OS sandbox.
 
 The ground-truth layer: instead of trusting the agent to report what it does, we
 launch it under a kernel sandbox (macOS sandbox-exec / Linux bubblewrap) so the OS
@@ -17,10 +17,10 @@ import re
 import subprocess
 import sys
 
-from agentproof.enforce import load_active_policy
-from agentproof.enforcement import ENFORCEMENT_UNAVAILABLE, GuardProfile, guard_argv, guard_backend
-from agentproof.hook import ensure_run
-from agentproof.recorder import append_event, paths_for_run
+from tracewall.enforce import load_active_policy
+from tracewall.enforcement import ENFORCEMENT_UNAVAILABLE, GuardProfile, guard_argv, guard_backend
+from tracewall.hook import ensure_run
+from tracewall.recorder import append_event, paths_for_run
 
 # Seatbelt deny line, e.g.: "Sandbox: cat(123) deny(1) file-read-data /proj/.env"
 _DENY_RE = re.compile(r"([\w.\-]+)\((\d+)\)\s+deny\(\d+\)\s+(\S+)\s+(/.*)")
@@ -79,12 +79,12 @@ def run_guard(command: list[str], cwd: Path | None = None, source: str = "agent"
     cwd = Path(cwd or Path.cwd())
     backend = guard_backend()
     if backend == "none":
-        print("agentproof guard: no sandbox backend on this host "
+        print("tracewall guard: no sandbox backend on this host "
               "(needs macOS sandbox-exec or Linux bwrap). Refusing to run unprotected.",
               file=sys.stderr)
         return ENFORCEMENT_UNAVAILABLE
 
-    profile = _profile(cwd, load_active_policy(paths_for_run(cwd=cwd).agentproof_dir))
+    profile = _profile(cwd, load_active_policy(paths_for_run(cwd=cwd).tracewall_dir))
     run_id = ensure_run(cwd, agent=source)
     paths = paths_for_run(run_id, cwd)
     append_event(paths, "guard.started",

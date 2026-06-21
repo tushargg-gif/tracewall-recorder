@@ -14,7 +14,7 @@ from __future__ import annotations
 from typing import Any
 import re
 
-from agentproof.sensitive import looks_secret_token
+from tracewall.sensitive import looks_secret_token
 
 # --- signal vocabularies (explainable, editable) ---------------------------
 

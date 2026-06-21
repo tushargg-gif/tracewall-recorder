@@ -15,8 +15,8 @@ SCHEMA_VERSION = "1"
 # the two never drift. This dict is the single source of truth.
 EVENT_SCHEMA_V1: dict[str, Any] = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://agentproof.dev/schema/agent-action-event.v1.json",
-    "title": "AgentProof Agent Action Event",
+    "$id": "https://tracewall.dev/schema/agent-action-event.v1.json",
+    "title": "tracewall Agent Action Event",
     "description": "One hash-chained record of a single agent action (intent or effect).",
     "type": "object",
     "additionalProperties": False,

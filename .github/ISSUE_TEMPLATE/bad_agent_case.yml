@@ -1,5 +1,5 @@
 name: Bad-agent case
-description: Share an agent failure AgentProof Recorder should detect.
+description: Share an agent failure tracewall Recorder should detect.
 title: "[Bad agent case]: "
 labels: ["bad-agent-case", "verification"]
 body:

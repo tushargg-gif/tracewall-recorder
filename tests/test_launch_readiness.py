@@ -8,8 +8,8 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_agentproof_recorder_alias_help_works():
-    primary = Path(sys.executable).with_name("agentproof")
+def test_tracewall_recorder_alias_help_works():
+    primary = Path(sys.executable).with_name("tracewall")
     primary_result = subprocess.run(
         [str(primary), "--help"],
         cwd=ROOT,
@@ -18,9 +18,9 @@ def test_agentproof_recorder_alias_help_works():
         check=False,
     )
     assert primary_result.returncode == 0, primary_result.stderr
-    assert "AgentProof Recorder" in primary_result.stdout
+    assert "tracewall Recorder" in primary_result.stdout
 
-    alias = Path(sys.executable).with_name("agentproof-recorder")
+    alias = Path(sys.executable).with_name("tracewall-recorder")
     result = subprocess.run(
         [str(alias), "--help"],
         cwd=ROOT,
@@ -29,4 +29,4 @@ def test_agentproof_recorder_alias_help_works():
         check=False,
     )
     assert result.returncode == 0, result.stderr
-    assert "AgentProof Recorder" in result.stdout
+    assert "tracewall Recorder" in result.stdout

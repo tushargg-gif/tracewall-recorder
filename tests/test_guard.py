@@ -3,8 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 import json
 
-import agentproof.guard as guard
-from agentproof.enforcement import GuardProfile, build_macos_profile, guard_argv
+import tracewall.guard as guard
+from tracewall.enforcement import GuardProfile, build_macos_profile, guard_argv
 
 
 def test_macos_profile_denies_secret_paths(tmp_path: Path):
@@ -47,7 +47,7 @@ def test_parses_macos_sandbox_denials(tmp_path: Path):
 
 
 def test_denied_event_shows_in_flow_as_blocked():
-    from agentproof.flow import build_action_flow
+    from tracewall.flow import build_action_flow
     events = [{"event_type": "os.file.denied", "event_id": "e1", "timestamp": "2026-06-16T10:00:00",
                "payload": {"source": "openclaw", "process": "cat", "operation": "file-read-data",
                            "path": "/proj/.env", "action_taken": "blocked"}}]

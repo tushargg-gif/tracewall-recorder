@@ -3,7 +3,7 @@ requires = ["setuptools>=69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "agentproof-recorder"
+name = "tracewall-recorder"
 version = "0.1.0"
 description = "Local evidence recorder and verification layer for AI coding agents."
 readme = "README.md"
@@ -44,13 +44,13 @@ dev = [
 ]
 
 [project.scripts]
-agentproof = "agentproof.cli:main"
-agentproof-recorder = "agentproof.cli:main"
+tracewall = "tracewall.cli:main"
+tracewall-recorder = "tracewall.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/tushargg-gif/AgentProof-Recorder"
-Repository = "https://github.com/tushargg-gif/AgentProof-Recorder"
-Issues = "https://github.com/tushargg-gif/AgentProof-Recorder/issues"
+Homepage = "https://github.com/tushargg-gif/tracewall-recorder"
+Repository = "https://github.com/tushargg-gif/tracewall-recorder"
+Issues = "https://github.com/tushargg-gif/tracewall-recorder/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -6,7 +6,7 @@ import os
 import subprocess
 import sys
 
-from agentproof.flow import build_action_flow, render_flow
+from tracewall.flow import build_action_flow, render_flow
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -66,7 +66,7 @@ def _cli(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
     env["PYTHONPATH"] = str(ROOT / "src")
     return subprocess.run(
-        [sys.executable, "-m", "agentproof", *args],
+        [sys.executable, "-m", "tracewall", *args],
         cwd=cwd, text=True, capture_output=True, env=env, check=False,
     )
 

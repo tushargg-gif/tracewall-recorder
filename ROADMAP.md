@@ -5,7 +5,7 @@
 > strategic "more-than-a-product" track. The section below is the original alpha-spine
 > roadmap, kept for context; `docs/roadmap.md` supersedes its forward-looking items.
 
-AgentProof Recorder is early alpha. The roadmap is intentionally focused on local evidence capture and verification before broader platform work.
+tracewall Recorder is early alpha. The roadmap is intentionally focused on local evidence capture and verification before broader platform work.
 
 The package is the **record → verify → report** spine plus opt-in enforcement.
 Broader experiments (sidecar, MCP proxy, orchestration, data-artifact checks,
@@ -14,8 +14,8 @@ restored if a clear need emerges.
 
 ## Now
 
-- Keep the CLI stable: `agentproof`
-- Keep import compatibility: `agentproof`
+- Keep the CLI stable: `tracewall`
+- Keep import compatibility: `tracewall`
 - Improve task-contract defaults
 - Expand bad-agent examples
 - Improve report readability

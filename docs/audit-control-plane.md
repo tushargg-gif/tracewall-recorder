@@ -1,4 +1,4 @@
-# AgentProof — From Recorder to AI Audit & Control Plane
+# Tracewall — From Recorder to AI Audit & Control Plane
 
 **Status:** Proposed (design only — no implementation yet)
 **Date:** 2026-06-14 · **Updated:** 2026-06-15
@@ -12,8 +12,8 @@
 > **Section 6 — Execution plan (first build)**.
 
 > **Correction 2026-06-15 — the gateway is the core, not a footnote.**
-> AgentProof is **not** a recorder a human drives by hand (`agentproof run --`).
-> The **AI is the orchestrator**; it drives the agents. **AgentProof is the gateway
+> Tracewall is **not** a recorder a human drives by hand (`tracewall run --`).
+> The **AI is the orchestrator**; it drives the agents. **Tracewall is the gateway
 > every agent action flows through — the orchestrator's eyes and hands on the agents.**
 > A worker agent cannot run a command or call a tool except *through* the gateway,
 > which records → policy-checks → executes/blocks → returns, attributing each action
@@ -27,7 +27,7 @@
 
 ## 1. Why this document exists
 
-We just carved AgentProof down to a clean **record → verify → report** spine and
+We just carved Tracewall down to a clean **record → verify → report** spine and
 parked the broader experiments (MCP proxy, sidecar, orchestration, data-artifact
 checks) in `archive/`. This document deliberately re-opens scope — but in a
 controlled way — because the product thesis has changed.
@@ -35,7 +35,7 @@ controlled way — because the product thesis has changed.
 The new thesis, in one sentence:
 
 > **Enterprises want to put AI agents into real workflows, but they can't accept
-> an agent that acts as a black box. AgentProof becomes the layer that makes every
+> an agent that acts as a black box. Tracewall becomes the layer that makes every
 > agent action observable, attributable, and — where it matters — blockable.**
 
 This is not a developer convenience tool anymore. It is a **governance / control
@@ -154,7 +154,7 @@ job.
 
 ### D3 — Execution capture: command broker alone, or broker + OS interception?
 
-**Options.** (A) Brokered command runner only (we already have `agentproof run --`),
+**Options.** (A) Brokered command runner only (we already have `tracewall run --`),
 gate on the command string. (B) Add OS-level interception (eBPF / sandbox / Endpoint
 Security) so we see child execs and syscalls *inside* an approved command. (C)
 Full syscall sandbox only, no command broker.
@@ -442,7 +442,7 @@ in miniature, and it's demoable.
 - *Why a homegrown rule format, not OPA now?* Users never see the engine (D7), so a
   tiny format the existing `policy`/`verifier` can evaluate is enough to prove the
   loop. Swap in OPA later, invisibly. Starting with OPA is premature weight.
-- *Why reuse, not rebuild?* We already have command capture (`agentproof run --`) and
+- *Why reuse, not rebuild?* We already have command capture (`tracewall run --`) and
   an MCP proxy in `archive/`. The intent layer is mostly *assembly*, not new invention.
 
 **The loop, step by step (no timelines — just order):**

@@ -1,4 +1,4 @@
-"""`agentproof observe -- <agent>` — record everything the agent's process tree
+"""`tracewall observe -- <agent>` — record everything the agent's process tree
 actually does (not just what it reports, and not just what gets denied).
 
 Ground-truth recording. Per ponytail we don't write an eBPF program; on Linux we
@@ -20,8 +20,8 @@ import subprocess
 import sys
 import tempfile
 
-from agentproof.hook import ensure_run
-from agentproof.recorder import append_event, paths_for_run
+from tracewall.hook import ensure_run
+from tracewall.recorder import append_event, paths_for_run
 
 _EXEC = re.compile(r'execve\("([^"]+)"')
 _OPENAT = re.compile(r'openat\([^,]+,\s*"([^"]+)",\s*([A-Z_|]+)')
@@ -67,7 +67,7 @@ def run_observe(command: list[str], cwd: Path | None = None, source: str = "agen
     paths = paths_for_run(run_id, cwd)
 
     if not shutil.which("strace"):
-        print("agentproof observe: strace not found — recording session only. "
+        print("tracewall observe: strace not found — recording session only. "
               "(Full observe is Linux/strace today; macOS via fs_usage/EndpointSecurity is next.)",
               file=sys.stderr)
         append_event(paths, "observe.started", {"source": source, "backend": "none", "command": command})

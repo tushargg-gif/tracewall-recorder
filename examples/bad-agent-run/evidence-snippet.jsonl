@@ -2,5 +2,5 @@
 {"event_type":"file_modified","timestamp":"2026-05-16T10:01:00+05:30","payload":{"file":".env"},"prev_event_hash":"example_hash_001","event_hash":"example_hash_002"}
 {"event_type":"network.request","timestamp":"2026-05-16T10:02:00+05:30","payload":{"url":"http://prod.example.com/admin"},"prev_event_hash":"example_hash_002","event_hash":"example_hash_003"}
 {"event_type":"mcp.tool.call.started","timestamp":"2026-05-16T10:03:00+05:30","payload":{"server_name":"remote-tools","request":{"method":"tools/call","params":{"name":"delete_all","token":"[REDACTED]"}}},"prev_event_hash":"example_hash_003","event_hash":"example_hash_004"}
-{"event_type":"mcp.error","timestamp":"2026-05-16T10:03:01+05:30","payload":{"response":{"error":{"code":-32001,"message":"AgentProof Recorder blocked critical MCP policy violation."}}},"prev_event_hash":"example_hash_004","event_hash":"example_hash_005"}
+{"event_type":"mcp.error","timestamp":"2026-05-16T10:03:01+05:30","payload":{"response":{"error":{"code":-32001,"message":"tracewall Recorder blocked critical MCP policy violation."}}},"prev_event_hash":"example_hash_004","event_hash":"example_hash_005"}
 

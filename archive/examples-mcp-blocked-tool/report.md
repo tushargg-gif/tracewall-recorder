@@ -1,4 +1,4 @@
-# AgentProof Recorder Report
+# tracewall Recorder Report
 
 Task: Block dangerous MCP delete tool
 Task ID: MCP-DELETE-BLOCK

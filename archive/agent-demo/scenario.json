@@ -1,6 +1,6 @@
 {
   "task_id": "DEMO-DOCS-001",
-  "task": "Update AgentProof Recorder docs/README for a demo.",
+  "task": "Update tracewall Recorder docs/README for a demo.",
   "policy_template": "docs_only",
   "workers": [
     {
@@ -21,12 +21,12 @@
     {
       "name": "Test Agent",
       "role": "tester",
-      "task": "Run the exact demo test probe through AgentProof."
+      "task": "Run the exact demo test probe through tracewall."
     },
     {
       "name": "Rogue Agent",
       "role": "rogue",
-      "task": "Attempt a dependency-file change that AgentProof must catch."
+      "task": "Attempt a dependency-file change that tracewall must catch."
     }
   ]
 }

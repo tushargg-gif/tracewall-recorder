@@ -28,5 +28,5 @@ def method_event_type(method: str, suffix: str | None = None) -> str:
     return base
 
 
-def block_error(request_id: Any, message: str = "AgentProof Recorder blocked critical MCP policy violation.") -> dict[str, Any]:
+def block_error(request_id: Any, message: str = "tracewall Recorder blocked critical MCP policy violation.") -> dict[str, Any]:
     return {"jsonrpc": "2.0", "id": request_id, "error": {"code": -32001, "message": message}}

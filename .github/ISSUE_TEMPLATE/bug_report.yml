@@ -18,7 +18,7 @@ body:
     id: expected
     attributes:
       label: Expected behavior
-      description: What did you expect AgentProof Recorder to do?
+      description: What did you expect tracewall Recorder to do?
     validations:
       required: true
   - type: textarea
@@ -27,9 +27,9 @@ body:
       label: Reproduction steps
       description: Commands, task contract, and any relevant files.
       placeholder: |
-        1. agentproof init
-        2. agentproof start --agent ...
-        3. agentproof run -- ...
+        1. tracewall init
+        2. tracewall start --agent ...
+        3. tracewall run -- ...
     validations:
       required: true
   - type: textarea

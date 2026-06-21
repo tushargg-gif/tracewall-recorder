@@ -28,18 +28,18 @@ Status legend: ✅ done · ◑ partial · ☐ todo
 - [x] Collapse `mcp_policy.py` (212→35 lines) to the two helpers the proxy uses; the standalone evaluator was superseded by `enforce.py`.
 - [x] Remove dead symbols: `enforce.MODES`, `enforcement.to_decision` + `guard_supported`, `events.REDACTED`; and 4 unused imports.
 
-**Test:** `pytest` green (67 passed, pre-existing sandbox PATH artifact aside); `pyflakes src/agentproof` clean; `vulture --min-confidence 60` shows only framework callbacks (`do_GET`/`do_POST`/`daemon_threads`).
+**Test:** `pytest` green (67 passed, pre-existing sandbox PATH artifact aside); `pyflakes src/tracewall` clean; `vulture --min-confidence 60` shows only framework callbacks (`do_GET`/`do_POST`/`daemon_threads`).
 **Result:** −3 source modules, −2 test files; sqlite path gone (no second store to drift from JSONL).
 
 ---
 
-## P0.1 — Daemon (`agentproofd`) ✅ (built previously)
+## P0.1 — Daemon (`tracewalld`) ✅ (built previously)
 
 **Goal:** one warm, local engine answering allow/ask/deny over UDS + localhost HTTP; no per-action cold start.
 **Reuse:** `enforce.evaluate_action`, `hook.run_pre/run_post`, `review.handle_api`.
 
 - [x] `daemon.py`: UDS + localhost HTTP, in-memory mtime-invalidated `PolicyCache`, 0600 socket.
-- [x] `agentproof daemon run|status|stop`; hook fast-path with in-process fallback.
+- [x] `tracewall daemon run|status|stop`; hook fast-path with in-process fallback.
 
 **Test:** existing daemon tests green; warm decide <20ms. *On-machine check still owed: run a real agent through the daemon (see X.1).*
 
@@ -51,7 +51,7 @@ Status legend: ✅ done · ◑ partial · ☐ todo
 **Reuse:** `daemon.serve`, `daemon.home()`; generate service files, don't hand-roll a supervisor.
 
 - [x] `service_spec` generates a `launchd` plist (macOS, `~/Library/LaunchAgents`) and a `systemd --user` unit (Linux, `~/.config/systemd/user`) from one path — pure + unit-tested.
-- [x] `agentproof daemon install` writes + best-effort-loads the unit; `daemon uninstall` reverses it. Idempotent; leaves a hint if the loader is unavailable.
+- [x] `tracewall daemon install` writes + best-effort-loads the unit; `daemon uninstall` reverses it. Idempotent; leaves a hint if the loader is unavailable.
 - [x] Daemon already writes `daemon.json` so clients discover it regardless of who started it.
 
 **Test:** *Linux (here):* `systemctl --user` loads the unit, daemon answers `/status`, survives parent shell exit. *macOS (user machine — flagged):* `launchctl load` auto-starts on login; killing VS Code leaves the daemon running. Unit-test the file *generation* (pure string) in CI; the load/auto-start step is the on-machine check.
@@ -88,10 +88,10 @@ Status legend: ✅ done · ◑ partial · ☐ todo
 
 **Goal:** the entire Ring-1 loop runs offline with zero account; no auth wall in front of a developer's first run.
 
-- [x] Audited every entry path (`cli`, `daemon`, `hook`, `review`): no outbound HTTP client anywhere, no login/account gate; the only network is local UDS + `127.0.0.1`, the only env var is the `AGENTPROOF_HOME` path override.
+- [x] Audited every entry path (`cli`, `daemon`, `hook`, `review`): no outbound HTTP client anywhere, no login/account gate; the only network is local UDS + `127.0.0.1`, the only env var is the `tracewall_HOME` path override.
 - [x] Documented the "fully local, no account" guarantee in the README (also a trust selling point).
 
-**Test:** `test_local_first.py` (3) — the full record→recommend→enforce loop runs offline with no account; a static guard asserts no source imports an outbound network client; the `AGENTPROOF_HOME` knob is a path override, not a gate.
+**Test:** `test_local_first.py` (3) — the full record→recommend→enforce loop runs offline with no account; a static guard asserts no source imports an outbound network client; the `tracewall_HOME` knob is a path override, not a gate.
 
 ---
 

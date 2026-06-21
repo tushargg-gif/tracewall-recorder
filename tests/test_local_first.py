@@ -3,11 +3,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from agentproof import enforce, recorder
-from agentproof.hook import run_pre
-from agentproof.recommend import recommend_policy
+from tracewall import enforce, recorder
+from tracewall.hook import run_pre
+from tracewall.recommend import recommend_policy
 
-SRC = Path(__file__).resolve().parents[1] / "src" / "agentproof"
+SRC = Path(__file__).resolve().parents[1] / "src" / "tracewall"
 
 # Outbound network *clients*. The daemon serving localhost HTTP (http.server) and
 # the UDS socket are local IPC, not these — so they're intentionally not listed.
@@ -35,20 +35,20 @@ def test_full_loop_runs_offline_with_no_account(tmp_path: Path):
     assert isinstance(recommend_policy(run_id, tmp_path), dict)
 
     # enforce: accept a rule and prove it blocks — entirely local.
-    agentproof_dir = recorder.paths_for_run(cwd=tmp_path).agentproof_dir
-    enforce.accept_rules(agentproof_dir, [{"id": "b", "decision": "block",
+    tracewall_dir = recorder.paths_for_run(cwd=tmp_path).tracewall_dir
+    enforce.accept_rules(tracewall_dir, [{"id": "b", "decision": "block",
                                            "match": {"kind": "command", "touches_secret": True}}])
-    policy = enforce.load_active_policy(agentproof_dir)
+    policy = enforce.load_active_policy(tracewall_dir)
     verdict = enforce.evaluate_action(enforce.action_from_command("cat .env"), policy)
     assert verdict["decision"] == "block"
 
 
 def test_home_override_is_the_only_env_knob(tmp_path: Path):
     # The one environment variable we read is a path override, never a gate.
-    from agentproof import daemon
+    from tracewall import daemon
     import os
-    os.environ["AGENTPROOF_HOME"] = str(tmp_path / "home")
+    os.environ["TRACEWALL_HOME"] = str(tmp_path / "home")
     try:
         assert daemon.home() == tmp_path / "home"
     finally:
-        del os.environ["AGENTPROOF_HOME"]
+        del os.environ["TRACEWALL_HOME"]

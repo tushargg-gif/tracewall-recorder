@@ -14,7 +14,7 @@ reading/writing the active policy file. The same engine serves every channel —
 commands today, MCP/tool calls next — because it evaluates a normalized action,
 not a channel-specific shape.
 
-Active policy lives at ``.agentproof/policy.json``:  {"rules": [ <rule>, ... ]}
+Active policy lives at ``.tracewall/policy.json``:  {"rules": [ <rule>, ... ]}
 using the rule format defined by the recommender (see ``recommend.py``).
 """
 
@@ -27,16 +27,16 @@ import hashlib
 import json
 import shlex
 
-from agentproof.events import now_iso
-from agentproof.sensitive import looks_secret_token
+from tracewall.events import now_iso
+from tracewall.sensitive import looks_secret_token
 
 POLICY_FILENAME = "policy.json"
 
 
 # --- active policy storage -------------------------------------------------
 
-def policy_path(agentproof_dir: Path) -> Path:
-    return Path(agentproof_dir) / POLICY_FILENAME
+def policy_path(tracewall_dir: Path) -> Path:
+    return Path(tracewall_dir) / POLICY_FILENAME
 
 
 def world_writable(path: Path) -> bool:
@@ -47,17 +47,17 @@ def world_writable(path: Path) -> bool:
         return False
 
 
-def policy_fingerprint(agentproof_dir: Path) -> str:
+def policy_fingerprint(tracewall_dir: Path) -> str:
     """sha256 of the active policy file (``"none"`` if absent) — a stable id used
     to detect and record policy changes."""
     try:
-        return hashlib.sha256(policy_path(agentproof_dir).read_bytes()).hexdigest()
+        return hashlib.sha256(policy_path(tracewall_dir).read_bytes()).hexdigest()
     except OSError:
         return "none"
 
 
-def load_active_policy(agentproof_dir: Path) -> dict[str, Any]:
-    path = policy_path(agentproof_dir)
+def load_active_policy(tracewall_dir: Path) -> dict[str, Any]:
+    path = policy_path(tracewall_dir)
     if not path.exists():
         return {"rules": []}
     # Hardening (P0.6): a world-writable policy (or directory) can be edited by
@@ -76,16 +76,16 @@ def load_active_policy(agentproof_dir: Path) -> dict[str, Any]:
     return data
 
 
-def save_active_policy(agentproof_dir: Path, policy: dict[str, Any]) -> Path:
-    path = policy_path(Path(agentproof_dir))
+def save_active_policy(tracewall_dir: Path, policy: dict[str, Any]) -> Path:
+    path = policy_path(Path(tracewall_dir))
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(policy, indent=2, sort_keys=True), encoding="utf-8")
     return path
 
 
-def accept_rules(agentproof_dir: Path, rules: list[dict[str, Any]], source_run: str | None = None) -> dict[str, Any]:
+def accept_rules(tracewall_dir: Path, rules: list[dict[str, Any]], source_run: str | None = None) -> dict[str, Any]:
     """Merge accepted rules into the active policy, keyed by rule id."""
-    policy = load_active_policy(Path(agentproof_dir))
+    policy = load_active_policy(Path(tracewall_dir))
     by_id = {rule["id"]: rule for rule in policy["rules"]}
     for rule in rules:
         prev = by_id.get(rule["id"])
@@ -99,7 +99,7 @@ def accept_rules(agentproof_dir: Path, rules: list[dict[str, Any]], source_run: 
             "source_run": (prev or {}).get("source_run") or source_run,
         }
     policy["rules"] = list(by_id.values())
-    save_active_policy(agentproof_dir, policy)
+    save_active_policy(tracewall_dir, policy)
     return policy
 
 
@@ -121,7 +121,7 @@ def render_policy(policy: dict[str, Any]) -> str:
     header = f"Active policy — {s['rules']} rule(s): {s['blocks']} block, {s['allows']} allow"
     lines = [header, "=" * len(header)]
     if not rules:
-        lines.append("No rules yet. Accept recommendations with: agentproof recommend --accept")
+        lines.append("No rules yet. Accept recommendations with: tracewall recommend --accept")
         return "\n".join(lines)
     ordered = sorted(rules, key=lambda r: (r.get("decision") != "block",
                                            (r.get("match") or {}).get("kind", ""),

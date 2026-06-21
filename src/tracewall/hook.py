@@ -1,4 +1,4 @@
-"""AgentProof as a Claude Code hook — the gateway, in front of a real agent.
+"""tracewall as a Claude Code hook — the gateway, in front of a real agent.
 
 Claude Code calls this *before* every tool runs (PreToolUse), passing the tool
 name and its input on stdin. We map that to a normalized action, decide
@@ -21,11 +21,11 @@ from pathlib import Path
 from typing import Any
 import json
 
-from agentproof import enforce
-from agentproof.contracts import load_contract, write_default_contract
-from agentproof.events import redact_secrets
-from agentproof.insight import analyze_action
-from agentproof.recorder import append_event, create_run, latest_run_id, paths_for_run
+from tracewall import enforce
+from tracewall.contracts import load_contract, write_default_contract
+from tracewall.events import redact_secrets
+from tracewall.insight import analyze_action
+from tracewall.recorder import append_event, create_run, latest_run_id, paths_for_run
 
 AGENT = "claude-code"
 _PERMISSION = {"block": "deny", "ask": "ask", "allow": "allow", "none": "allow"}
@@ -73,7 +73,7 @@ def decide(action: dict[str, Any], label: str, cwd: Path, ask_mode: str = "nativ
     ``policy`` may be supplied by a caller that already holds it in memory (the
     daemon's cache) to skip the per-call disk read; otherwise it's loaded here."""
     if policy is None:
-        policy = enforce.load_active_policy(paths_for_run(cwd=cwd).agentproof_dir)
+        policy = enforce.load_active_policy(paths_for_run(cwd=cwd).tracewall_dir)
     learned = enforce.evaluate_action(action, policy)
     if learned["decision"] != "none":
         decision, reason, rule_id, source = learned["decision"], learned["reason"], learned["rule_id"], "policy"
@@ -121,7 +121,7 @@ def ensure_run(cwd: Path, agent: str = AGENT) -> str:
     active = paths.active_file
     if active.exists() and active.read_text(encoding="utf-8").strip():
         return active.read_text(encoding="utf-8").strip()
-    task = paths.agentproof_dir / "task.yml"
+    task = paths.tracewall_dir / "task.yml"
     if not task.exists():
         write_default_contract(task)
     return create_run(load_contract(task), agent=agent, cwd=cwd)["run_id"]
@@ -177,11 +177,11 @@ def run_pre(stdin_text: str, cwd: Path, ask_mode: str = "native", source: str = 
         return {"hookSpecificOutput": {
             "hookEventName": "PreToolUse",
             "permissionDecision": d["permission"],
-            "permissionDecisionReason": d["reason"] or "Allowed by AgentProof.",
+            "permissionDecisionReason": d["reason"] or "Allowed by tracewall.",
         }}
     except Exception as exc:  # fail-open: a broken hook must not brick the agent
         return {"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "allow",
-                                       "permissionDecisionReason": f"AgentProof hook error (allowed): {exc}"}}
+                                       "permissionDecisionReason": f"tracewall hook error (allowed): {exc}"}}
 
 
 def run_post(stdin_text: str, cwd: Path, source: str = AGENT) -> dict[str, Any]:

@@ -3,17 +3,17 @@
 **Companion:** [security-model.md](security-model.md) · [adr-source-of-truth.md](adr-source-of-truth.md) · [p0-execution-plan.md](p0-execution-plan.md)
 **Date:** 2026-06-20
 
-The daemon (`agentproofd`) is privileged in one specific sense: it holds the active policy and mediates every agent action, so it decides what an agent is allowed to do. That makes it worth attacking. This document states what it defends, what it explicitly does not, and the concrete mitigations in code.
+The daemon (`tracewalld`) is privileged in one specific sense: it holds the active policy and mediates every agent action, so it decides what an agent is allowed to do. That makes it worth attacking. This document states what it defends, what it explicitly does not, and the concrete mitigations in code.
 
 ## Assets
 
-1. **The active policy** (`.agentproof/policy.json`) — the allow/ask/block rules. If an attacker can edit it, they can grant an agent permissions a human never approved.
+1. **The active policy** (`.tracewall/policy.json`) — the allow/ask/block rules. If an attacker can edit it, they can grant an agent permissions a human never approved.
 2. **The hash-chained event log** (`events.jsonl`, `policy-events.jsonl`) — the tamper-evident record of what happened. Its value is integrity: you can detect after-the-fact edits.
-3. **The decision socket** (`~/.agentproof/daemon.sock`) — the channel the hook uses to ask "allow/ask/deny?". If another local user could talk to it or impersonate it, they could spoof decisions.
+3. **The decision socket** (`~/.tracewall/daemon.sock`) — the channel the hook uses to ask "allow/ask/deny?". If another local user could talk to it or impersonate it, they could spoof decisions.
 
 ## Trust boundary
 
-- **Trusted:** the developer who owns the machine and the `~/.agentproof` directory; the daemon process running as that user.
+- **Trusted:** the developer who owns the machine and the `~/.tracewall` directory; the daemon process running as that user.
 - **Untrusted:** the agent under governance (it may be buggy, prompt-injected, or pointed at a malicious repo) and any *other* local user account.
 
 The core stance: **the agent is the thing we watch, not a partner.** It must not be able to silently widen its own permissions or erase its trail.

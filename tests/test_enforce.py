@@ -6,7 +6,7 @@ import os
 import subprocess
 import sys
 
-from agentproof.enforce import (
+from tracewall.enforce import (
     accept_rules,
     action_from_command,
     action_from_tool,
@@ -59,7 +59,7 @@ def test_enforced_outcome_modes():
 
 
 def test_accept_rules_merges_by_id(tmp_path: Path):
-    d = tmp_path / ".agentproof"
+    d = tmp_path / ".tracewall"
     d.mkdir()
     accept_rules(d, [POLICY["rules"][0]])
     assert len(load_active_policy(d)["rules"]) == 1
@@ -73,7 +73,7 @@ def _cli(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
     env["PYTHONPATH"] = str(ROOT / "src")
     return subprocess.run(
-        [sys.executable, "-m", "agentproof", *args],
+        [sys.executable, "-m", "tracewall", *args],
         cwd=cwd, text=True, capture_output=True, env=env, check=False,
     )
 
@@ -85,8 +85,8 @@ def test_closed_loop_block_on_next_run(tmp_path: Path):
     assert _cli(tmp_path, "run", "--", "python3", "-c", "pass").returncode == 0
     assert _cli(tmp_path, "stop", "--final-response", "done").returncode == 0
 
-    from agentproof.flow import action_flow
-    from agentproof.review import set_verdict
+    from tracewall.flow import action_flow
+    from tracewall.review import set_verdict
     run1 = json.loads(_cli(tmp_path, "flow", "--json").stdout)["run_id"]
     seq = next(a["seq"] for a in action_flow(run1, tmp_path)["actions"] if "python3" in a["title"])
     set_verdict(run1, seq, "block", cwd=tmp_path)
@@ -94,7 +94,7 @@ def test_closed_loop_block_on_next_run(tmp_path: Path):
     # Recommend + accept -> active policy now blocks the python3 binary.
     accepted = _cli(tmp_path, "recommend", "--accept")
     assert accepted.returncode == 0
-    assert "block_cmd_python3" in (tmp_path / ".agentproof" / "policy.json").read_text()
+    assert "block_cmd_python3" in (tmp_path / ".tracewall" / "policy.json").read_text()
 
     # Run 2: the same command is now blocked in block mode; an unrelated echo still runs.
     assert _cli(tmp_path, "start", "--agent", "test").returncode == 0
@@ -108,7 +108,7 @@ def test_closed_loop_block_on_next_run(tmp_path: Path):
 def test_observe_mode_records_but_does_not_block(tmp_path: Path):
     assert _cli(tmp_path, "init").returncode == 0
     # block echo in the active policy directly
-    accept_rules(tmp_path / ".agentproof",
+    accept_rules(tmp_path / ".tracewall",
                  [{"id": "block_cmd_echo", "decision": "block",
                    "match": {"kind": "command", "binary": "echo"}, "reason": "x"}])
     assert _cli(tmp_path, "start", "--agent", "test").returncode == 0

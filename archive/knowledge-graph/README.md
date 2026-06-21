@@ -1,6 +1,6 @@
 # Repository Knowledge Graph
 
-A machine- and human-readable map of the AgentProof Recorder codebase: modules,
+A machine- and human-readable map of the tracewall Recorder codebase: modules,
 classes, functions, and the `imports` / `inherits` / `calls` relationships between
 them. Generated directly from the Python sources with the standard-library `ast`
 module — no third-party dependencies, no network access.
@@ -39,7 +39,7 @@ Modules are grouped into layers for color/grouping (see `LAYERS` in
 
 ## How the edges are resolved
 
-- `imports` — only repo-internal `agentproof.*` imports are kept; external deps
+- `imports` — only repo-internal `tracewall.*` imports are kept; external deps
   (fastapi, httpx, …) are intentionally excluded to keep the graph about *this*
   codebase.
 - `inherits` — base classes are linked when the base name resolves to a class
@@ -54,7 +54,7 @@ The Reddit feedback asked for *prevention* (block a risky action before it touch
 sensitive files) rather than only *post-hoc detection*. That gate now exists and
 the graph shows it:
 
-- `agentproof.sensitive` is the single source of truth for sensitive patterns,
+- `tracewall.sensitive` is the single source of truth for sensitive patterns,
   consumed by **both** `verifier` (which flags, `action_taken="flagged"`) and
   `enforcement` (which blocks, `action_taken="blocked"`).
 - The **enforcement** layer (`enforcement`) runs commands inside an OS sandbox.

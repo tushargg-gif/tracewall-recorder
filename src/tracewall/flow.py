@@ -3,7 +3,7 @@
 Reduces a run's raw event log into one ordered list of *intent* actions — the
 things the agent tried to do — across capture channels:
 
-- recorded commands (`agentproof run -- ...`)
+- recorded commands (`tracewall run -- ...`)
 - MCP/tool calls (via the stdio proxy)
 
 This is the substrate the review UX and the policy recommender read from. It is
@@ -16,7 +16,7 @@ from __future__ import annotations
 from typing import Any
 import json
 
-from agentproof.recorder import read_events
+from tracewall.recorder import read_events
 
 # Events that end one action and start the search window for the next.
 _BOUNDARY_EVENTS = {"command_finished", "mcp.tool.call.started"}
