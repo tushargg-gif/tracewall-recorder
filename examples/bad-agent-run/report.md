@@ -1,4 +1,4 @@
-# AgentProof Recorder Report
+# tracewall Recorder Report
 
 Task: Bad orchestrated run
 Task ID: BAD-001

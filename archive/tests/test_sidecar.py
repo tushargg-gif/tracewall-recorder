@@ -5,7 +5,7 @@ import json
 
 from fastapi.testclient import TestClient
 
-from agentproof.sidecar import create_app
+from tracewall.sidecar import create_app
 
 
 def create_run(client: TestClient, **overrides):
@@ -28,7 +28,7 @@ def create_run(client: TestClient, **overrides):
 
 
 def test_sidecar_run_event_stop_verify_and_report(tmp_path: Path):
-    client = TestClient(create_app(tmp_path / ".agentproof"))
+    client = TestClient(create_app(tmp_path / ".tracewall"))
     run = create_run(client)
     event = client.post(
         f"/v1/runs/{run['run_id']}/events",
@@ -42,20 +42,20 @@ def test_sidecar_run_event_stop_verify_and_report(tmp_path: Path):
     assert verify.json()["event_summary"]["network.request"] == 1
     markdown = client.get(f"/v1/runs/{run['run_id']}/report.md")
     assert markdown.status_code == 200
-    assert "AgentProof Recorder Report" in markdown.text
+    assert "tracewall Recorder Report" in markdown.text
     report_json = client.get(f"/v1/runs/{run['run_id']}/report.json")
     assert report_json.status_code == 200
     assert report_json.json()["run"]["run_id"] == run["run_id"]
 
 
 def test_sidecar_invalid_run_returns_404(tmp_path: Path):
-    client = TestClient(create_app(tmp_path / ".agentproof"))
+    client = TestClient(create_app(tmp_path / ".tracewall"))
     response = client.get("/v1/runs/missing")
     assert response.status_code == 404
 
 
 def test_sidecar_auth_token_protects_non_health_endpoints(tmp_path: Path):
-    client = TestClient(create_app(tmp_path / ".agentproof", auth_token="test-token"))
+    client = TestClient(create_app(tmp_path / ".tracewall", auth_token="test-token"))
     health = client.get("/health")
     assert health.status_code == 200
     assert health.json() == {"status": "ok"}
@@ -77,7 +77,7 @@ def test_sidecar_auth_token_protects_non_health_endpoints(tmp_path: Path):
 
 
 def test_sidecar_concurrent_runs_do_not_mix_events(tmp_path: Path):
-    client = TestClient(create_app(tmp_path / ".agentproof"))
+    client = TestClient(create_app(tmp_path / ".tracewall"))
     first = create_run(client, task_contract={"task_id": "ONE", "title": "one", "verification": {}, "allowed_paths": []})
     second = create_run(client, task_contract={"task_id": "TWO", "title": "two", "verification": {}, "allowed_paths": []})
     client.post(f"/v1/runs/{first['run_id']}/events", json={"event_type": "tool.call", "payload": {"tool": "first"}})
@@ -85,21 +85,21 @@ def test_sidecar_concurrent_runs_do_not_mix_events(tmp_path: Path):
     first_verify = client.post(f"/v1/runs/{first['run_id']}/verify").json()
     second_verify = client.post(f"/v1/runs/{second['run_id']}/verify").json()
     assert first_verify["run_id"] != second_verify["run_id"]
-    first_events = (tmp_path / ".agentproof" / "runs" / first["run_id"] / "events.jsonl").read_text(encoding="utf-8")
-    second_events = (tmp_path / ".agentproof" / "runs" / second["run_id"] / "events.jsonl").read_text(encoding="utf-8")
+    first_events = (tmp_path / ".tracewall" / "runs" / first["run_id"] / "events.jsonl").read_text(encoding="utf-8")
+    second_events = (tmp_path / ".tracewall" / "runs" / second["run_id"] / "events.jsonl").read_text(encoding="utf-8")
     assert "first" in first_events
     assert "second" not in first_events
     assert "second" in second_events
 
 
 def test_event_hash_chain_and_redaction_detect_tampering(tmp_path: Path):
-    client = TestClient(create_app(tmp_path / ".agentproof"))
+    client = TestClient(create_app(tmp_path / ".tracewall"))
     run = create_run(client)
     client.post(
         f"/v1/runs/{run['run_id']}/events",
         json={"event_type": "tool.call", "payload": {"api_key": "secret-value", "nested": {"token": "abc"}}},
     )
-    events_path = tmp_path / ".agentproof" / "runs" / run["run_id"] / "events.jsonl"
+    events_path = tmp_path / ".tracewall" / "runs" / run["run_id"] / "events.jsonl"
     raw = events_path.read_text(encoding="utf-8")
     assert "secret-value" not in raw
     assert '"event_hash"' in raw

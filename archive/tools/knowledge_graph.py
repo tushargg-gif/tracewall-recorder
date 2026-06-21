@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a knowledge graph of the AgentProof Recorder repository.
+"""Build a knowledge graph of the tracewall Recorder repository.
 
 Parses the Python sources with the standard-library ``ast`` module (no third-party
 dependencies) and emits a graph of the repo's structure and relationships:
@@ -12,7 +12,7 @@ Node kinds
 
 Edge kinds
     contains   package -> module, module -> class/function, class -> method
-    imports    module -> module (internal ``agentproof.*`` imports only)
+    imports    module -> module (internal ``tracewall.*`` imports only)
     inherits   class -> base class (when the base resolves inside the repo)
     calls      function -> function (best-effort, repo-internal symbols only)
 
@@ -114,12 +114,12 @@ class ModuleParser(ast.NodeVisitor):
         self.generic_visit(node)
 
     def _record_import(self, dotted: str) -> None:
-        if not dotted.startswith("agentproof"):
+        if not dotted.startswith("tracewall"):
             return
-        # agentproof.verifier -> module id "src/agentproof/verifier.py" style key
+        # tracewall.verifier -> module id "src/tracewall/verifier.py" style key
         short = dotted.split(".", 1)[1] if "." in dotted else ""
         if short:
-            candidate = f"agentproof.{short}"
+            candidate = f"tracewall.{short}"
             if candidate in self.known_modules:
                 self.imports.add(candidate)
 
@@ -230,7 +230,7 @@ def discover_modules() -> dict[str, Path]:
 
 def build_graph() -> dict[str, Any]:
     module_paths = discover_modules()
-    known_internal = {m for m in module_paths if m.startswith("agentproof")}
+    known_internal = {m for m in module_paths if m.startswith("tracewall")}
 
     nodes: dict[str, Node] = {}
     edges: list[Edge] = []
@@ -266,7 +266,7 @@ def build_graph() -> dict[str, Any]:
             doc=ast.get_docstring(tree),
             meta={"path": str(path.relative_to(REPO_ROOT))},
         )
-        pkg = "src" if module_id.startswith("agentproof") else "tests"
+        pkg = "src" if module_id.startswith("tracewall") else "tests"
         if pkg in nodes:
             edges.append(Edge(pkg, module_id, "contains"))
 
@@ -362,7 +362,7 @@ def _serialize(
 
     return {
         "metadata": {
-            "repo": "AgentProof-Recorder",
+            "repo": "tracewall-Recorder",
             "generator": "tools/knowledge_graph.py",
             "module_count": len(module_paths),
             "node_counts": dict(kind_counts),
@@ -377,13 +377,13 @@ def _serialize(
 # Renderers
 # ---------------------------------------------------------------------------
 def render_module_mermaid(graph: dict[str, Any]) -> str:
-    lines = ["%% Module import graph - AgentProof Recorder", "graph LR"]
+    lines = ["%% Module import graph - tracewall Recorder", "graph LR"]
     layer_of = {
         n["id"]: (n.get("layer") or "other")
         for n in graph["nodes"]
         if n["kind"] == "module"
     }
-    modules = [n for n in graph["nodes"] if n["kind"] == "module" and n["id"].startswith("agentproof")]
+    modules = [n for n in graph["nodes"] if n["kind"] == "module" and n["id"].startswith("tracewall")]
     by_layer: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for mod in modules:
         by_layer[mod.get("layer") or "other"].append(mod)
@@ -395,7 +395,7 @@ def render_module_mermaid(graph: dict[str, Any]) -> str:
         lines.append("  end")
     for edge in graph["edges"]:
         if edge["kind"] == "imports":
-            if edge["source"].startswith("agentproof") and edge["target"].startswith("agentproof"):
+            if edge["source"].startswith("tracewall") and edge["target"].startswith("tracewall"):
                 lines.append(f"  {_mid(edge['source'])} --> {_mid(edge['target'])}")
     return "\n".join(lines) + "\n"
 
@@ -500,7 +500,7 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>AgentProof Recorder - Knowledge Graph</title>
+<title>tracewall Recorder - Knowledge Graph</title>
 <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
 <style>
   body { margin:0; font-family:-apple-system,Segoe UI,Roboto,sans-serif; background:#0d1117; color:#e6edf3; }
@@ -515,7 +515,7 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
 </head>
 <body>
 <div id="bar">
-  <h1>AgentProof Recorder — Knowledge Graph</h1>
+  <h1>tracewall Recorder — Knowledge Graph</h1>
   <label>show:
     <select id="kindFilter">
       <option value="all">modules + classes + functions</option>
@@ -571,7 +571,7 @@ draw();
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Build AgentProof Recorder knowledge graph.")
+    ap = argparse.ArgumentParser(description="Build tracewall Recorder knowledge graph.")
     ap.add_argument("--print", action="store_true", dest="do_print", help="Print a text summary.")
     ap.add_argument("--out", default=str(OUTPUT_DIR), help="Output directory.")
     args = ap.parse_args()
@@ -597,7 +597,7 @@ def main() -> int:
 
 def _print_summary(graph: dict[str, Any]) -> None:
     print("\nModule import fan-in (top 8):")
-    mods = [n for n in graph["nodes"] if n["kind"] == "module" and n["id"].startswith("agentproof")]
+    mods = [n for n in graph["nodes"] if n["kind"] == "module" and n["id"].startswith("tracewall")]
     for n in sorted(mods, key=lambda m: m["meta"].get("imports_in", 0), reverse=True)[:8]:
         mm = n["meta"]
         print(f"  {n['id']:<28} in={mm.get('imports_in',0)} out={mm.get('imports_out',0)} loc={n.get('loc')}")

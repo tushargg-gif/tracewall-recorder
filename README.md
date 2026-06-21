@@ -1,10 +1,10 @@
-# AgentProof
+# Tracewall
 
 <p align="center"><strong>A guardrail in front of your coding agent.</strong></p>
 
 <p align="center">
   Every action your agent takes — reading files, running commands, web fetches,
-  MCP/tool calls — passes through AgentProof first: recorded, risk-checked, and
+  MCP/tool calls — passes through Tracewall first: recorded, risk-checked, and
   <strong>allowed, blocked, or escalated to you</strong>. It learns what's safe from
   your own allow/block decisions, so it gets quieter over time.
 </p>
@@ -27,6 +27,12 @@
 > are tested against each tool's documented hook contract. Validate against your own
 > setup before trusting it in anger (see the quickstart smoke tests).
 
+> **Local-first, no account.** Tracewall runs entirely on your machine — no signup,
+> no cloud, no telemetry, no outbound network. The full record → review → recommend →
+> enforce loop works offline. Your agent's actions never leave your computer unless you
+> explicitly opt in to team sync (a future, opt-in control plane). Secrets are redacted
+> at write time, so they're never even stored raw.
+
 ---
 
 ## The problem
@@ -40,14 +46,14 @@ fast on the safe 90% and stops or escalates the rest.
 
 ```bash
 pip install -e .          # from this repo
-agentproof init           # creates .agentproof/ in your project
-agentproof install-hook   # wires AgentProof into .claude/settings.json
+tracewall init           # creates .tracewall/ in your project
+tracewall install-hook   # wires tracewall into .claude/settings.json
 ```
 
 Restart Claude Code (terminal **or** VS Code — same engine). Now, with no further
 configuration:
 
-| The agent tries to… | AgentProof |
+| The agent tries to… | Tracewall |
 |---|---|
 | read `.env` / `*.pem` | **denies** it |
 | `pip install …`, fetch a URL, `rm -rf …`, a consequential MCP tool | **asks you** first |
@@ -57,7 +63,7 @@ Full walkthrough + smoke test: **[docs/claude-code-quickstart.md](docs/claude-co
 
 ## How it works
 
-AgentProof is the **gateway** the agent's actions flow through. As a Claude Code
+Tracewall is the **gateway** the agent's actions flow through. As a Claude Code
 `PreToolUse` hook it sees every tool call (Bash, Read/Write, WebSearch/WebFetch,
 MCP) — the file path, the command, the args — *before* it runs, and returns
 **allow / ask / deny**.
@@ -83,7 +89,7 @@ record  →  review  →  learn  →  enforce  →  catch it next time
             timeline)  reasons)  block)
 ```
 
-You never hand-write policy. Review a run, mark **allow/block**, and AgentProof
+You never hand-write policy. Review a run, mark **allow/block**, and Tracewall
 drafts reusable rules *with reasons* — so the next time, what you blocked is denied
 automatically. The more you review, the more autonomy the agent earns, safely.
 
@@ -94,17 +100,17 @@ still works.
 ## CLI
 
 ```bash
-agentproof install-hook        # install the Claude Code hook (Pre/PostToolUse)
-agentproof install-codex       # install the Codex hook (.codex/hooks.json)
-agentproof hook                # the hook entrypoint (the agent calls this)
+tracewall install-hook        # install the Claude Code hook (Pre/PostToolUse)
+tracewall install-codex       # install the Codex hook (.codex/hooks.json)
+tracewall hook                # the hook entrypoint (the agent calls this)
 
-agentproof flow                # the captured timeline — timestamped, source-attributed (claude-code / codex)
-agentproof review              # allow/block review (browser); --json / --export also
-agentproof recommend --accept  # turn your verdicts into active policy
-agentproof policy              # every rule in force, in one place
+tracewall flow                # the captured timeline — timestamped, source-attributed (claude-code / codex)
+tracewall review              # allow/block review (browser); --json / --export also
+tracewall recommend --accept  # turn your verdicts into active policy
+tracewall policy              # every rule in force, in one place
 
-agentproof verify              # check a run against its task contract
-agentproof report --print      # markdown / json trust report
+tracewall verify              # check a run against its task contract
+tracewall report --print      # markdown / json trust report
 ```
 
 Also available: `init`, `start`, `run -- <cmd>`, `event`, `stop`, `verdict`, and
@@ -121,21 +127,21 @@ allow/block, policy view, and one-click hook install. See
 ## What it covers (and doesn't)
 
 - ✅ **Claude Code** — terminal CLI, VS Code extension, JetBrains (one hook covers all): bash, file reads, websearch, MCP, with allow/ask/deny.
-- ◑ **Codex** — Bash commands via Codex's hook (deny-only today) + MCP tool calls via the `agentproof mcp stdio` proxy. Narrower than Claude Code (no Read/WebSearch interception, no "ask" through the hook). See [docs/codex-quickstart.md](docs/codex-quickstart.md).
+- ◑ **Codex** — Bash commands via Codex's hook (deny-only today) + MCP tool calls via the `tracewall mcp stdio` proxy. Narrower than Claude Code (no Read/WebSearch interception, no "ask" through the hook). See [docs/codex-quickstart.md](docs/codex-quickstart.md).
 - ⛔ **DeepSeek / Kimi** — not yet; need a different mechanism (planned, likely the OS-level layer).
-- 🛟 **Fail-open** — if the hook errors, the action is allowed (with a note); AgentProof can't brick your agent.
+- 🛟 **Fail-open** — if the hook errors, the action is allowed (with a note); Tracewall can't brick your agent.
 - ⚠️ It's a guardrail against careless/unintended actions, **not** a containment
   boundary for a fully attacker-controlled agent.
 
 ## Repository layout
 
 ```text
-src/agentproof/        Python package (gateway, hook, policy engine, review, recommender).
+src/tracewall/        Python package (gateway, hook, policy engine, review, recommender).
 vscode-extension/      VS Code review panel (TypeScript).
 tests/                 Automated tests.
 docs/                  Quickstarts, North Star, design doc, security model.
 archive/               Parked experiments. Not part of the package.
-.agentproof/           Per-project runtime: runs, policy.json, verdicts. Created by the CLI.
+.tracewall/           Per-project runtime: runs, policy.json, verdicts. Created by the CLI.
 ```
 
 ## Status

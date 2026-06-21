@@ -1,6 +1,6 @@
 # Code of Conduct
 
-AgentProof Recorder should be a practical, respectful space for people working on agent reliability and developer tooling.
+tracewall Recorder should be a practical, respectful space for people working on agent reliability and developer tooling.
 
 ## Expected Behavior
 

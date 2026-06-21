@@ -13,7 +13,7 @@ def run_cli(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
     env["PYTHONPATH"] = str(ROOT / "src")
     return subprocess.run(
-        [sys.executable, "-m", "agentproof", *args],
+        [sys.executable, "-m", "tracewall", *args],
         cwd=cwd,
         text=True,
         capture_output=True,
@@ -36,7 +36,7 @@ def test_cli_records_verifies_and_reports_clean_run(tmp_path: Path):
     )
     init = run_cli(tmp_path, "init")
     assert init.returncode == 0, init.stderr
-    (tmp_path / ".agentproof" / "task.yml").write_text(
+    (tmp_path / ".tracewall" / "task.yml").write_text(
         f"""
 task_id: AUTH-142
 title: Fix expired JWT refresh bug
@@ -81,5 +81,5 @@ human_approval_required: true
     assert '"verdict": "Pass"' in verify.stdout
     report = run_cli(tmp_path, "report", "--print")
     assert report.returncode == 0, report.stderr
-    assert "AgentProof Recorder Report" in report.stdout
+    assert "tracewall Recorder Report" in report.stdout
     assert "Score:" in report.stdout

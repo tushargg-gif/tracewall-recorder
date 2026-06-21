@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>tracewall — product prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabler-icons/2.47.0/iconfont/tabler-icons.min.css" />
+<style>
+:root{
+  --ink-950:#070910; --ink-900:#0A0D14; --ink-850:#0E1119; --ink-800:#141925;
+  --ink-750:#1A2030; --ink-700:#222a3c; --line:#28324a; --line-soft:#1b2334;
+  --txt:#EAF1F8; --txt-2:#9FB0C5; --txt-3:#647488;
+  --go:#B6FF3C; --go-deep:#1c2a0a; --go-2:#8fdc1f;
+  --ask:#FFB23E; --ask-deep:#2c1e05;
+  --deny:#FF5C66; --deny-deep:#2c0d10;
+  --ai:#9B8CFF; --ai-deep:#181433;
+  --info:#5CC8FF;
+  --r-sm:8px; --r:12px; --r-lg:16px; --r-xl:22px;
+  --sans:'Inter',system-ui,-apple-system,sans-serif;
+  --disp:'Space Grotesk','Inter',system-ui,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--ink-850);color:var(--txt);font-family:var(--sans);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+::selection{background:var(--go);color:#0a0d14}
+a{color:inherit;text-decoration:none}
+.mono{font-family:var(--mono)}
+.muted{color:var(--txt-2)}
+.dim{color:var(--txt-3)}
+
+/* ---- top bar ---- */
+.topbar{display:flex;align-items:center;gap:18px;height:58px;padding:0 20px;border-bottom:1px solid var(--line);background:var(--ink-900);position:sticky;top:0;z-index:40}
+.brand{display:flex;align-items:center;gap:10px}
+.mark{width:30px;height:30px;flex:none}
+.wordmark{font-family:var(--disp);font-weight:700;font-size:18px;letter-spacing:-0.02em;color:var(--txt)}
+.wordmark b{color:var(--go)}
+.badge-alpha{font-family:var(--mono);font-size:10px;color:var(--go);border:1px solid var(--go-2);padding:1px 6px;border-radius:20px;opacity:.85;margin-left:2px}
+.seg{display:flex;background:var(--ink-800);border:1px solid var(--line);border-radius:30px;padding:3px;gap:2px}
+.seg button{font-family:var(--sans);font-weight:500;font-size:13px;color:var(--txt-2);background:none;border:none;padding:6px 16px;border-radius:30px;cursor:pointer;display:flex;align-items:center;gap:7px}
+.seg button.on{background:var(--go);color:#0a0d14}
+.seg button.on i{color:#0a0d14}
+.spacer{flex:1}
+.trust-chip{display:flex;align-items:center;gap:9px;background:var(--ink-800);border:1px solid var(--line);border-radius:30px;padding:6px 14px 6px 11px}
+.trust-chip .ring{width:18px;height:18px;border-radius:50%;background:conic-gradient(var(--go) 0 94%,#2a3550 94% 100%);position:relative}
+.trust-chip .ring::after{content:"";position:absolute;inset:4px;border-radius:50%;background:var(--ink-800)}
+.trust-chip b{font-family:var(--disp);font-weight:600;color:var(--go)}
+.avatar{width:30px;height:30px;border-radius:50%;background:#2a3550;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;color:var(--txt);border:1px solid var(--line)}
+
+/* ---- layout ---- */
+.surface{display:none}
+.surface.on{display:block}
+.layout{display:grid;grid-template-columns:232px 1fr;min-height:calc(100vh - 58px)}
+.sidebar{border-right:1px solid var(--line);background:var(--ink-900);padding:16px 12px;display:flex;flex-direction:column;gap:3px}
+.side-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--txt-3);padding:14px 12px 6px}
+.nav{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:var(--r);color:var(--txt-2);cursor:pointer;font-weight:500;border-left:2px solid transparent}
+.nav i{font-size:18px}
+.nav:hover{background:var(--ink-800);color:var(--txt)}
+.nav.on{background:var(--ink-800);color:var(--txt);border-left:2px solid var(--go)}
+.nav .count{margin-left:auto;font-size:11px;font-family:var(--mono);color:var(--txt-3);background:var(--ink-750);padding:1px 7px;border-radius:20px}
+.nav.on .count{color:var(--go)}
+.sidebar .repo{margin-top:auto;border-top:1px solid var(--line-soft);padding:14px 12px 4px;display:flex;align-items:center;gap:10px}
+.sidebar .repo i{font-size:18px;color:var(--txt-3)}
+.sidebar .repo .nm{font-family:var(--mono);font-size:12px;color:var(--txt-2)}
+
+.main{padding:26px 30px 80px;max-width:1180px}
+.page{display:none}
+.page.on{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.ph{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px}
+.ph h1{font-family:var(--disp);font-weight:600;font-size:25px;letter-spacing:-0.02em}
+.ph p{color:var(--txt-2);font-size:13.5px;margin-top:4px}
+.ph .live{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--txt-2);background:var(--ink-800);border:1px solid var(--line);padding:6px 12px;border-radius:20px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--go);box-shadow:0 0 0 3px rgba(182,255,60,.18)}
+
+/* ---- cards / metrics ---- */
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.metric{background:var(--ink-800);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px 18px}
+.metric .lab{font-size:12px;color:var(--txt-3);display:flex;align-items:center;gap:7px}
+.metric .lab i{font-size:15px}
+.metric .val{font-family:var(--disp);font-weight:600;font-size:30px;letter-spacing:-0.02em;margin-top:10px;line-height:1}
+.metric .sub{font-size:12px;margin-top:8px;display:flex;align-items:center;gap:6px}
+.up{color:var(--go)} .down{color:var(--deny)}
+.metric.go{border-color:#33491a} .metric.go .val{color:var(--go)}
+.metric.ask .val{color:var(--ask)} .metric.deny .val{color:var(--deny)}
+
+.row2{display:grid;grid-template-columns:1.5fr 1fr;gap:14px;margin-top:14px}
+.panel{background:var(--ink-800);border:1px solid var(--line);border-radius:var(--r-lg);padding:18px 20px}
+.panel-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.panel-h h3{font-family:var(--disp);font-weight:600;font-size:15px}
+.panel-h .verified{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--go);font-family:var(--mono)}
+.link{color:var(--txt-2);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px}
+.link:hover{color:var(--go)}
+
+/* chart */
+.chart-wrap{position:relative}
+.chart-meta{display:flex;gap:22px;margin-bottom:10px}
+.chart-meta div span{display:block}
+.chart-meta .k{font-size:11px;color:var(--txt-3)}
+.chart-meta .v{font-family:var(--disp);font-weight:600;font-size:18px;margin-top:2px}
+
+/* feed */
+.feed{display:flex;flex-direction:column}
+.frow{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line-soft)}
+.frow:last-child{border-bottom:none}
+.fi{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex:none}
+.fi.deny{background:var(--deny-deep);color:var(--deny)} .fi.ask{background:var(--ask-deep);color:var(--ask)} .fi.allow{background:var(--go-deep);color:var(--go)}
+.frow .tx{flex:1;min-width:0}
+.frow .tx b{font-weight:500}
+.frow .tx .meta{font-size:11.5px;color:var(--txt-3);margin-top:2px}
+.src{font-family:var(--mono);font-size:10px;padding:1px 6px;border-radius:5px;border:1px solid var(--line);color:var(--txt-2)}
+.src.cc{color:#d6a3ff;border-color:#3a2c52}
+.src.cx{color:#7fd4c8;border-color:#234642}
+
+/* pills */
+.pill{font-size:11px;font-weight:500;padding:3px 9px;border-radius:20px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.pill.allow{background:var(--go-deep);color:var(--go)}
+.pill.ask{background:var(--ask-deep);color:var(--ask)}
+.pill.deny{background:var(--deny-deep);color:var(--deny)}
+.pill.ai{background:var(--ai-deep);color:var(--ai)}
+.pill.mismatch{background:var(--deny-deep);color:var(--deny)}
+
+/* agents table */
+.atable{width:100%;border-collapse:collapse}
+.atable th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--txt-3);font-weight:500;padding:0 10px 10px}
+.atable td{padding:12px 10px;border-top:1px solid var(--line-soft);font-size:13px;vertical-align:middle}
+.agent-id{display:flex;align-items:center;gap:10px}
+.agent-id .d{width:8px;height:8px;border-radius:50%;background:var(--go)}
+.agent-id .d.idle{background:var(--txt-3)}
+
+/* ---- review ---- */
+.review{display:grid;grid-template-columns:1fr 392px;gap:16px}
+.run-head{display:flex;align-items:center;gap:14px;background:var(--ink-800);border:1px solid var(--line);border-radius:var(--r);padding:13px 18px;margin-bottom:14px}
+.run-head .ic{width:36px;height:36px;border-radius:10px;background:var(--ink-750);display:flex;align-items:center;justify-content:center;color:var(--go);font-size:18px}
+.run-head .t b{font-weight:600}
+.run-head .t .m{font-size:12px;color:var(--txt-3);margin-top:2px}
+.timeline{background:var(--ink-800);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden}
+.act{display:flex;align-items:center;gap:13px;padding:13px 16px;border-bottom:1px solid var(--line-soft);cursor:pointer;border-left:2px solid transparent}
+.act:last-child{border-bottom:none}
+.act:hover{background:var(--ink-750)}
+.act.sel{background:var(--ink-750);border-left:2px solid var(--go)}
+.act .ai-ic{width:30px;height:30px;border-radius:8px;background:var(--ink-700);display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--txt-2);flex:none}
+.act .cmd{flex:1;min-width:0}
+.act .cmd .c{font-family:var(--mono);font-size:12.5px;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.act .cmd .c em{color:var(--deny);font-style:normal}
+.act .cmd .why{font-size:11px;color:var(--txt-3);margin-top:3px}
+.act .ts{font-family:var(--mono);font-size:11px;color:var(--txt-3);flex:none}
+
+/* detail */
+.detail{background:var(--ink-800);border:1px solid var(--line);border-radius:var(--r-lg);padding:18px;position:sticky;top:74px;height:fit-content}
+.detail .dh{display:flex;align-items:center;gap:9px;margin-bottom:6px}
+.detail .dh i{font-size:18px;color:var(--txt-2)}
+.detail .dh b{font-family:var(--disp);font-weight:600;font-size:14px}
+.kv{display:flex;flex-direction:column;gap:0;margin:14px 0;border:1px solid var(--line-soft);border-radius:var(--r);overflow:hidden}
+.kv div{display:flex;justify-content:space-between;gap:12px;padding:9px 12px;font-size:12.5px;border-bottom:1px solid var(--line-soft)}
+.kv div:last-child{border-bottom:none}
+.kv .k{color:var(--txt-3)} .kv .v{font-family:var(--mono);color:var(--txt-2);text-align:right;word-break:break-all}
+.codebox{background:var(--ink-950);border:1px solid var(--line-soft);border-radius:var(--r);padding:12px 14px;font-family:var(--mono);font-size:12px;color:var(--txt);margin:12px 0;white-space:pre-wrap;word-break:break-all}
+.codebox .cmt{color:var(--txt-3)}
+.codebox em{color:var(--deny);font-style:normal}
+.why-box{display:flex;gap:9px;background:var(--ask-deep);border:1px solid #4a370f;border-radius:var(--r);padding:11px 13px;font-size:12.5px;color:#ffd591;margin-bottom:14px}
+.why-box.danger{background:var(--deny-deep);border-color:#4a1419;color:#ffb3b8}
+.why-box i{font-size:16px;flex:none;margin-top:1px}
+.verdicts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.vbtn{font-family:var(--sans);font-weight:600;font-size:13px;border-radius:var(--r);padding:11px 0;cursor:pointer;border:1px solid var(--line);background:var(--ink-750);color:var(--txt);display:flex;align-items:center;justify-content:center;gap:6px}
+.vbtn i{font-size:16px}
+.vbtn.allow:hover,.vbtn.allow.act{background:var(--go);color:#0a0d14;border-color:var(--go)}
+.vbtn.ask:hover,.vbtn.ask.act{background:var(--ask);color:#2c1e05;border-color:var(--ask)}
+.vbtn.deny:hover,.vbtn.deny.act{background:var(--deny);color:#2c0d10;border-color:var(--deny)}
+
+/* ai recommendation */
+.ai-card{margin-top:14px;border:1px solid #342a63;background:var(--ai-deep);border-radius:var(--r-lg);padding:15px;display:none}
+.ai-card.show{display:block;animation:fade .3s ease}
+.ai-card .ah{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.ai-card .ah .sp{width:24px;height:24px;border-radius:7px;background:#241b4d;display:flex;align-items:center;justify-content:center;color:var(--ai);font-size:15px}
+.ai-card .ah b{font-family:var(--disp);font-weight:600;font-size:13px;color:#cfc6ff}
+.ai-card .rule{font-weight:500;font-size:13.5px;margin-bottom:5px}
+.ai-card .reason{font-size:12.5px;color:#b9aef2;line-height:1.5}
+.ai-card .scope{font-family:var(--mono);font-size:11.5px;color:var(--ai);background:#221b45;border-radius:6px;padding:7px 10px;margin:11px 0;border:1px solid #322a5e}
+.ai-actions{display:flex;gap:8px}
+.ai-actions button{font-family:var(--sans);font-weight:500;font-size:12.5px;padding:8px 14px;border-radius:9px;cursor:pointer;border:1px solid #3a306e;background:none;color:#cfc6ff;display:flex;align-items:center;gap:6px}
+.ai-actions button.primary{background:var(--ai);color:#160f33;border-color:var(--ai);font-weight:600}
+
+/* policies */
+.plist{display:flex;flex-direction:column;gap:10px}
+.prow{display:flex;align-items:center;gap:14px;background:var(--ink-800);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px}
+.prow .pic{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;flex:none}
+.prow .pbody{flex:1}
+.prow .pbody b{font-weight:500}
+.prow .pbody .pr{font-size:12px;color:var(--txt-3);margin-top:3px}
+.prow .meta{text-align:right;font-size:11px;color:var(--txt-3)}
+.switch{width:38px;height:22px;border-radius:20px;background:var(--go);position:relative;flex:none;cursor:pointer}
+.switch::after{content:"";position:absolute;width:16px;height:16px;border-radius:50%;background:#0a0d14;top:3px;right:3px}
+.switch.off{background:var(--ink-700)}
+.switch.off::after{left:3px;right:auto;background:var(--txt-3)}
+
+/* audit */
+.ltable{width:100%;border-collapse:collapse;font-size:12.5px}
+.ltable th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--txt-3);font-weight:500;padding:0 12px 11px}
+.ltable td{padding:11px 12px;border-top:1px solid var(--line-soft);vertical-align:middle}
+.hash{font-family:var(--mono);font-size:11px;color:var(--txt-3)}
+.hash b{color:var(--go-2)}
+.chain-ic{color:var(--go);font-size:14px}
+
+/* fab + toast */
+.fab{position:fixed;right:26px;bottom:26px;z-index:50;display:flex;align-items:center;gap:9px;background:var(--go);color:#0a0d14;font-weight:600;font-size:13.5px;border:none;border-radius:30px;padding:13px 20px;cursor:pointer;font-family:var(--sans);box-shadow:0 8px 30px rgba(182,255,60,.22)}
+.fab i{font-size:18px}
+.toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%) translateY(20px);background:var(--ink-750);border:1px solid var(--line);border-radius:var(--r);padding:12px 18px;display:flex;align-items:center;gap:10px;font-size:13px;opacity:0;transition:.3s;z-index:60;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast i{font-size:17px;color:var(--go)}
+
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(4,6,11,.72);backdrop-filter:blur(3px);z-index:70;display:none;align-items:center;justify-content:center;padding:20px}
+.overlay.show{display:flex;animation:fade .2s ease}
+.modal{width:480px;max-width:100%;background:var(--ink-850);border:1px solid var(--line);border-radius:var(--r-xl);overflow:hidden}
+.modal .mtop{display:flex;align-items:center;gap:11px;padding:18px 20px;border-bottom:1px solid var(--line);background:var(--ink-900)}
+.modal .mtop .shield{width:34px;height:34px;border-radius:10px;background:var(--ask-deep);color:var(--ask);display:flex;align-items:center;justify-content:center;font-size:19px}
+.modal .mtop b{font-family:var(--disp);font-weight:600;font-size:15px}
+.modal .mtop .m{font-size:11.5px;color:var(--txt-3);margin-top:1px}
+.modal .mbody{padding:20px}
+.modal .ask-line{font-size:13.5px;color:var(--txt-2);margin-bottom:10px}
+.modal .ask-line b{color:var(--txt);font-weight:500}
+.modal .cmdbig{font-family:var(--mono);font-size:13.5px;background:var(--ink-950);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;color:var(--go);margin-bottom:14px}
+.modal .ctx{display:flex;gap:9px;font-size:12.5px;color:var(--txt-3);background:var(--ink-800);border-radius:var(--r);padding:11px 13px;margin-bottom:16px}
+.modal .ctx i{font-size:15px;margin-top:1px}
+.modal .chk{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--txt-2);margin-bottom:16px;cursor:pointer}
+.modal .chk .box{width:18px;height:18px;border-radius:5px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;background:var(--go);color:#0a0d14;font-size:13px}
+.modal .mbtns{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.modal .mbtns .wide{grid-column:1 / -1}
+.mbtn{font-family:var(--sans);font-weight:600;font-size:13px;padding:12px;border-radius:var(--r);cursor:pointer;border:1px solid var(--line);background:var(--ink-750);color:var(--txt);display:flex;align-items:center;justify-content:center;gap:7px}
+.mbtn.allow{background:var(--go);color:#0a0d14;border-color:var(--go)}
+.mbtn.deny{color:var(--deny);border-color:#4a1419}
+.mbtn.deny:hover{background:var(--deny);color:#2c0d10}
+.mbtn.ghost{background:none}
+
+/* vscode */
+.vsc{margin:22px auto;max-width:1120px;background:#10131b;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.vsc-bar{display:flex;align-items:center;gap:8px;height:38px;padding:0 14px;background:#0b0e15;border-bottom:1px solid var(--line)}
+.vsc-bar .dots{display:flex;gap:7px}.vsc-bar .dots i{width:11px;height:11px;border-radius:50%}
+.vsc-bar .tt{margin:0 auto;font-size:12px;color:var(--txt-3);font-family:var(--mono)}
+.vsc-grid{display:grid;grid-template-columns:48px 230px 1fr;height:560px}
+.vsc-act{background:#0b0e15;border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:18px;color:var(--txt-3)}
+.vsc-act i{font-size:22px;cursor:pointer}.vsc-act i.on{color:var(--go)}
+.vsc-side{background:#0c1018;border-right:1px solid var(--line);padding:12px 0}
+.vsc-side .sh{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--txt-3);padding:6px 16px}
+.tree{font-size:13px;color:var(--txt-2)}
+.tree .f{display:flex;align-items:center;gap:7px;padding:5px 16px;cursor:pointer}
+.tree .f i{font-size:15px}
+.tree .f.ind{padding-left:30px}
+.tree .f.active{background:#16202c;color:var(--txt)}
+.tree .f .gd{margin-left:auto;color:var(--go);font-size:10px;font-family:var(--mono)}
+.vsc-main{display:flex;flex-direction:column;min-width:0}
+.vsc-tabs{display:flex;background:#0b0e15;border-bottom:1px solid var(--line);height:36px}
+.vsc-tabs .tab{display:flex;align-items:center;gap:8px;padding:0 16px;font-size:12.5px;color:var(--txt-3);border-right:1px solid var(--line);font-family:var(--mono)}
+.vsc-tabs .tab.active{background:#10131b;color:var(--txt);border-top:2px solid var(--go)}
+.editor{flex:1;display:flex;font-family:var(--mono);font-size:12.5px;line-height:1.7;overflow:hidden;background:#0d1019}
+.gutter{padding:14px 0;text-align:right;color:#3a4862;user-select:none;min-width:42px}
+.gutter div{padding:0 12px}
+.code{padding:14px 0;color:#c8d4e3;overflow:auto;flex:1}
+.code div{padding:0 16px;white-space:pre}
+.code .kw{color:#9B8CFF}.code .st{color:var(--go-2)}.code .fn{color:#5CC8FF}.code .cm{color:#566173}.code .hl{background:#1a2a16}
+.vsc-panel{height:218px;border-top:1px solid var(--line);background:#0b0e15;display:flex;flex-direction:column}
+.vsc-ptabs{display:flex;gap:2px;padding:6px 12px 0;font-size:11.5px}
+.vsc-ptabs .pt{padding:6px 12px;color:var(--txt-3);cursor:pointer;border-radius:7px 7px 0 0}
+.vsc-ptabs .pt.on{color:var(--txt);background:#10131b;border:1px solid var(--line);border-bottom:none}
+.vsc-ptabs .pt .b{display:inline-flex;align-items:center;justify-content:center;background:var(--ask);color:#2c1e05;font-size:9px;border-radius:10px;padding:0 5px;margin-left:6px;font-family:var(--sans);font-weight:600}
+.vsc-pbody{flex:1;background:#10131b;border-top:1px solid var(--line);overflow:auto;padding:6px 0}
+.mini{display:flex;align-items:center;gap:11px;padding:9px 16px;border-bottom:1px solid var(--line-soft)}
+.mini .mi{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;flex:none}
+.mini .mc{flex:1;font-family:var(--mono);font-size:12px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini .mbtns2{display:flex;gap:6px}
+.mini .mb{font-size:11px;font-weight:600;padding:5px 11px;border-radius:7px;cursor:pointer;border:1px solid var(--line);background:none;color:var(--txt-2)}
+.mini .mb.a:hover{background:var(--go);color:#0a0d14;border-color:var(--go)}
+.mini .mb.d:hover{background:var(--deny);color:#2c0d10;border-color:var(--deny)}
+
+.note{max-width:1120px;margin:0 auto 26px;color:var(--txt-3);font-size:12px;text-align:center}
+@media(max-width:960px){.grid4{grid-template-columns:1fr 1fr}.row2,.review{grid-template-columns:1fr}.detail{position:static}.layout{grid-template-columns:1fr}.sidebar{display:none}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <svg class="mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="tracewall">
+      <path d="M16 2.5 4 7.2v8.3c0 7.2 5 12 12 14.2 7-2.2 12-7 12-14.2V7.2L16 2.5Z" fill="#0E1119" stroke="#B6FF3C" stroke-width="1.6"/>
+      <path d="M10.5 16.2l3.7 3.7 7.3-7.6" stroke="#B6FF3C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="wordmark">Agent<b>Proof</b></div>
+    <span class="badge-alpha">ALPHA</span>
+  </div>
+
+  <div class="seg" role="tablist">
+    <button class="on" data-surface="cp" onclick="setSurface('cp',this)"><i class="ti ti-layout-dashboard"></i>Control plane</button>
+    <button data-surface="vs" onclick="setSurface('vs',this)"><i class="ti ti-brand-vscode"></i>VS Code</button>
+  </div>
+
+  <div class="spacer"></div>
+
+  <div class="trust-chip" title="Share of agent actions auto-allowed by your learned policy">
+    <span class="ring"></span><span class="muted" style="font-size:12px">Trust</span><b>94%</b>
+  </div>
+  <div class="avatar">TG</div>
+</div>
+
+<!-- ================= CONTROL PLANE ================= -->
+<div class="surface on" id="surface-cp">
+<div class="layout">
+  <aside class="sidebar">
+    <div class="side-label">Workspace</div>
+    <div class="nav on" data-page="dashboard" onclick="go('dashboard',this)"><i class="ti ti-chart-arcs"></i>Dashboard</div>
+    <div class="nav" data-page="review" onclick="go('review',this)"><i class="ti ti-list-check"></i>Review<span class="count">4</span></div>
+    <div class="nav" data-page="policies" onclick="go('policies',this)"><i class="ti ti-shield-check"></i>Policies<span class="count">9</span></div>
+    <div class="nav" data-page="audit" onclick="go('audit',this)"><i class="ti ti-history"></i>Audit log</div>
+    <div class="side-label">Fleet</div>
+    <div class="nav" data-page="dashboard" onclick="go('dashboard',this)"><i class="ti ti-robot"></i>Agents<span class="count">5</span></div>
+    <div class="nav" style="opacity:.5"><i class="ti ti-settings"></i>Settings</div>
+    <div class="repo"><i class="ti ti-git-branch"></i><div><div class="nm">acme/payments-api</div><div class="dim" style="font-size:11px">main · 8 repos linked</div></div></div>
+  </aside>
+
+  <main class="main">
+    <!-- DASHBOARD -->
+    <section class="page on" id="page-dashboard">
+      <div class="ph">
+        <div><h1>Fleet overview</h1><p>Every action your agents took today — recorded, risk-checked, allow / ask / deny.</p></div>
+        <div class="live"><span class="dot"></span>5 agents active</div>
+      </div>
+
+      <div class="grid4">
+        <div class="metric"><div class="lab"><i class="ti ti-activity"></i>Actions today</div><div class="val">3,482</div><div class="sub up"><i class="ti ti-trending-up"></i>+18% vs yesterday</div></div>
+        <div class="metric go"><div class="lab"><i class="ti ti-circle-check"></i>Auto-allowed</div><div class="val">94.2%</div><div class="sub up"><i class="ti ti-arrow-up-right"></i>policy is learning</div></div>
+        <div class="metric ask"><div class="lab"><i class="ti ti-hand-stop"></i>Escalated to you</div><div class="val">181</div><div class="sub dim">4 awaiting review</div></div>
+        <div class="metric deny"><div class="lab"><i class="ti ti-ban"></i>Blocked</div><div class="val">37</div><div class="sub dim">12 secret-file reads</div></div>
+      </div>
+
+      <div class="row2">
+        <div class="panel">
+          <div class="panel-h"><h3>Trust trend — autonomy earned</h3><span class="link">Last 14 days</span></div>
+          <div class="chart-meta">
+            <div><span class="k">Auto-allowed</span><span class="v up">94.2%</span></div>
+            <div><span class="k">2 weeks ago</span><span class="v muted">71%</span></div>
+            <div><span class="k">Hand-written rules</span><span class="v">0</span></div>
+          </div>
+          <svg class="chart-wrap" viewBox="0 0 560 150" width="100%" height="150" preserveAspectRatio="none">
+            <line x1="0" y1="38" x2="560" y2="38" stroke="#1b2334"/><line x1="0" y1="76" x2="560" y2="76" stroke="#1b2334"/><line x1="0" y1="114" x2="560" y2="114" stroke="#1b2334"/>
+            <path d="M0,108 L46,100 L93,104 L140,86 L186,90 L233,72 L280,66 L326,58 L373,60 L420,44 L466,40 L513,30 L560,24 L560,150 L0,150 Z" fill="rgba(182,255,60,.10)"/>
+            <path d="M0,108 L46,100 L93,104 L140,86 L186,90 L233,72 L280,66 L326,58 L373,60 L420,44 L466,40 L513,30 L560,24" fill="none" stroke="#B6FF3C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="560" cy="24" r="4" fill="#B6FF3C"/>
+          </svg>
+        </div>
+
+        <div class="panel">
+          <div class="panel-h"><h3>Recent risky events</h3><span class="verified"><i class="ti ti-lock-check"></i>hash-chained</span></div>
+          <div class="feed">
+            <div class="frow"><div class="fi deny"><i class="ti ti-key-off"></i></div><div class="tx"><b>Read <span class="mono">.env</span> blocked</b><div class="meta"><span class="src cc">claude-code</span> · payments-api · 2m ago</div></div><span class="pill deny">denied</span></div>
+            <div class="frow"><div class="fi ask"><i class="ti ti-package"></i></div><div class="tx"><b><span class="mono">pip install stripe</span></b><div class="meta"><span class="src cc">claude-code</span> · payments-api · 6m ago</div></div><span class="pill ask">asked</span></div>
+            <div class="frow"><div class="fi deny"><i class="ti ti-alert-triangle"></i></div><div class="tx"><b>Intent ≠ effect mismatch</b><div class="meta"><span class="src cx">codex</span> · data-pipeline · 21m ago</div></div><span class="pill mismatch">flagged</span></div>
+            <div class="frow"><div class="fi ask"><i class="ti ti-world"></i></div><div class="tx"><b>Web fetch to <span class="mono">api.stripe.com</span></b><div class="meta"><span class="src cc">claude-code</span> · 34m ago</div></div><span class="pill ask">asked</span></div>
+            <div class="frow"><div class="fi allow"><i class="ti ti-git-commit"></i></div><div class="tx"><b>MCP <span class="mono">github.create_pr</span></b><div class="meta"><span class="src cx">codex</span> · web-app · 41m ago</div></div><span class="pill allow">allowed</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:14px">
+        <div class="panel-h"><h3>Agents</h3><span class="link" onclick="go('review',document.querySelector('[data-page=review]'))">Open review<i class="ti ti-arrow-right"></i></span></div>
+        <table class="atable">
+          <thead><tr><th>Agent</th><th>Source</th><th>Repo</th><th>Actions</th><th>Asked</th><th>Blocked</th><th>Last event</th></tr></thead>
+          <tbody>
+            <tr><td><div class="agent-id"><span class="d"></span>Tushar · local</div></td><td><span class="src cc">claude-code</span></td><td class="mono dim">payments-api</td><td>1,204</td><td>62</td><td class="down">14</td><td class="dim">2m ago</td></tr>
+            <tr><td><div class="agent-id"><span class="d"></span>CI runner</div></td><td><span class="src cx">codex</span></td><td class="mono dim">web-app</td><td>980</td><td>40</td><td class="down">8</td><td class="dim">11m ago</td></tr>
+            <tr><td><div class="agent-id"><span class="d"></span>Priya · local</div></td><td><span class="src cc">claude-code</span></td><td class="mono dim">data-pipeline</td><td>713</td><td>49</td><td class="down">11</td><td class="dim">21m ago</td></tr>
+            <tr><td><div class="agent-id"><span class="d idle"></span>Nightly bot</div></td><td><span class="src cx">codex</span></td><td class="mono dim">infra</td><td>585</td><td>30</td><td class="down">4</td><td class="dim">3h ago</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- REVIEW -->
+    <section class="page" id="page-review">
+      <div class="ph">
+        <div><h1>Review a run</h1><p>React to what the agent actually did. Mark allow / block — tracewall drafts the reusable policy.</p></div>
+        <div class="live"><span class="dot" style="background:var(--ask);box-shadow:0 0 0 3px rgba(255,178,62,.18)"></span>4 actions need you</div>
+      </div>
+
+      <div class="run-head">
+        <div class="ic"><i class="ti ti-robot"></i></div>
+        <div class="t" style="flex:1"><b>Task — “add Stripe webhook handler”</b><div class="m"><span class="src cc">claude-code</span> · payments-api · started 6 min ago · 14 actions captured</div></div>
+        <span class="pill ask"><i class="ti ti-clock"></i> in progress</span>
+      </div>
+
+      <div class="review">
+        <div class="timeline" id="timeline">
+          <div class="act" data-id="git" onclick="pick(this)"><div class="ai-ic"><i class="ti ti-git-branch"></i></div><div class="cmd"><div class="c">git status</div><div class="why">read-only git · matched policy</div></div><span class="pill allow">allowed</span><span class="ts">06:12:01</span></div>
+          <div class="act" data-id="read1" onclick="pick(this)"><div class="ai-ic"><i class="ti ti-file"></i></div><div class="cmd"><div class="c">read src/server.py</div><div class="why">source file in repo</div></div><span class="pill allow">allowed</span><span class="ts">06:12:03</span></div>
+          <div class="act sel" data-id="pip" onclick="pick(this)"><div class="ai-ic" style="color:var(--ask)"><i class="ti ti-package"></i></div><div class="cmd"><div class="c">pip install stripe-agent-toolkit</div><div class="why">installs a package · supply-chain risk</div></div><span class="pill ask" data-pill>ask</span><span class="ts">06:12:09</span></div>
+          <div class="act" data-id="write" onclick="pick(this)"><div class="ai-ic"><i class="ti ti-pencil"></i></div><div class="cmd"><div class="c">write src/webhooks.py</div><div class="why">new file inside workspace</div></div><span class="pill allow">allowed</span><span class="ts">06:12:18</span></div>
+          <div class="act" data-id="env" onclick="pick(this)"><div class="ai-ic" style="color:var(--deny)"><i class="ti ti-key"></i></div><div class="cmd"><div class="c">read <em>.env</em></div><div class="why">secret file · denied by default</div></div><span class="pill deny" data-pill>denied</span><span class="ts">06:12:24</span></div>
+          <div class="act" data-id="web" onclick="pick(this)"><div class="ai-ic" style="color:var(--ask)"><i class="ti ti-world"></i></div><div class="cmd"><div class="c">web fetch api.stripe.com/v1/webhooks</div><div class="why">outbound request · not allowlisted</div></div><span class="pill ask" data-pill>ask</span><span class="ts">06:12:30</span></div>
+          <div class="act" data-id="mismatch" onclick="pick(this)"><div class="ai-ic" style="color:var(--deny)"><i class="ti ti-alert-triangle"></i></div><div class="cmd"><div class="c">read config.yaml <em>→ opened .env</em></div><div class="why" style="color:var(--deny)">intent ≠ effect — claimed one file, touched another</div></div><span class="pill mismatch" data-pill>flagged</span><span class="ts">06:12:38</span></div>
+          <div class="act" data-id="mcp" onclick="pick(this)"><div class="ai-ic"><i class="ti ti-brand-github"></i></div><div class="cmd"><div class="c">mcp github.create_pr</div><div class="why">consequential MCP tool</div></div><span class="pill ask" data-pill>ask</span><span class="ts">06:12:51</span></div>
+        </div>
+
+        <div class="detail" id="detail">
+          <div class="dh"><i class="ti ti-package"></i><b>pip install stripe-agent-toolkit</b></div>
+          <div class="muted" style="font-size:12.5px">Bash command intercepted before it ran.</div>
+          <div class="kv">
+            <div><span class="k">source</span><span class="v">claude-code (PreToolUse)</span></div>
+            <div><span class="k">repo</span><span class="v">payments-api</span></div>
+            <div><span class="k">category</span><span class="v">package-install</span></div>
+            <div><span class="k">default</span><span class="v" style="color:var(--ask)">ask</span></div>
+          </div>
+          <div class="codebox"><span class="cmt"># the agent wants to run</span>
+pip install stripe-agent-toolkit</div>
+          <div class="why-box"><i class="ti ti-alert-triangle"></i><div>Installing a package can pull arbitrary code. tracewall asks the first time — your decision becomes policy.</div></div>
+          <div class="verdicts">
+            <button class="vbtn allow" onclick="verdict('allow')"><i class="ti ti-check"></i>Allow</button>
+            <button class="vbtn ask act" onclick="verdict('ask')"><i class="ti ti-hand-stop"></i>Ask</button>
+            <button class="vbtn deny" onclick="verdict('deny')"><i class="ti ti-ban"></i>Block</button>
+          </div>
+
+          <div class="ai-card" id="aicard">
+            <div class="ah"><span class="sp"><i class="ti ti-sparkles"></i></span><b>Policy by demonstration</b></div>
+            <div class="rule" id="ai-rule">Allow <span class="mono">pip install</span> from this repo</div>
+            <div class="reason" id="ai-reason">You allowed it once. I can let trusted package installs through next time — still recorded — so this stops interrupting you.</div>
+            <div class="scope" id="ai-scope">when: command = pip/npm install · repo = payments-api → ALLOW + log</div>
+            <div class="ai-actions">
+              <button class="primary" onclick="acceptPolicy()"><i class="ti ti-circle-check"></i>Accept rule</button>
+              <button onclick="toast('Opened in editor')"><i class="ti ti-edit"></i>Edit</button>
+              <button onclick="document.getElementById('aicard').classList.remove('show')"><i class="ti ti-x"></i>Dismiss</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- POLICIES -->
+    <section class="page" id="page-policies">
+      <div class="ph">
+        <div><h1>Policies in force</h1><p>You never hand-wrote any of these. Each one came from a real allow / block, with its reason kept.</p></div>
+        <span class="link"><i class="ti ti-download"></i> Export policy.json</span>
+      </div>
+      <div class="plist" id="plist">
+        <div class="prow"><div class="pic" style="background:var(--deny-deep);color:var(--deny)"><i class="ti ti-key-off"></i></div><div class="pbody"><b>Block reading secret files</b><div class="pr">Scope <span class="mono">.env, *.pem, *.key, *.crt</span> — prevents secret exfiltration</div></div><div class="meta">from your block<br>2 days ago</div><div class="switch"></div></div>
+        <div class="prow"><div class="pic" style="background:var(--go-deep);color:var(--go)"><i class="ti ti-git-commit"></i></div><div class="pbody"><b>Allow read-only git</b><div class="pr">Scope <span class="mono">git status · log · diff · branch</span> — no side effects</div></div><div class="meta">from your allow<br>5 days ago</div><div class="switch"></div></div>
+        <div class="prow"><div class="pic" style="background:var(--ask-deep);color:var(--ask)"><i class="ti ti-package"></i></div><div class="pbody"><b>Ask before installing packages</b><div class="pr">Scope <span class="mono">pip · npm · brew install</span> — supply-chain risk</div></div><div class="meta">default<br>built-in</div><div class="switch"></div></div>
+        <div class="prow"><div class="pic" style="background:var(--ask-deep);color:var(--ask)"><i class="ti ti-world"></i></div><div class="pbody"><b>Ask before outbound web requests</b><div class="pr">Scope <span class="mono">non-allowlisted hosts</span> — allowlist: github.com, pypi.org</div></div><div class="meta">from your allow<br>1 week ago</div><div class="switch"></div></div>
+        <div class="prow"><div class="pic" style="background:var(--deny-deep);color:var(--deny)"><i class="ti ti-trash"></i></div><div class="pbody"><b>Block destructive shell outside workspace</b><div class="pr">Scope <span class="mono">rm -rf · git push --force · :(){ }</span></div></div><div class="meta">default<br>built-in</div><div class="switch"></div></div>
+      </div>
+    </section>
+
+    <!-- AUDIT -->
+    <section class="page" id="page-audit">
+      <div class="ph">
+        <div><h1>Audit log</h1><p>One ordered timeline across every agent. Tamper-evident — each entry hashes the one before it.</p></div>
+        <div style="display:flex;gap:9px">
+          <span class="link" onclick="toast('Chain verified — 0 breaks across 3,482 entries')"><i class="ti ti-lock-check chain-ic"></i> Verify chain</span>
+          <span class="link"><i class="ti ti-file-export"></i> Export for auditor</span>
+        </div>
+      </div>
+      <div class="panel" style="padding:14px 8px">
+        <table class="ltable">
+          <thead><tr><th>Time</th><th>Source</th><th>Action</th><th>Verdict</th><th>Entry hash ← prev</th></tr></thead>
+          <tbody>
+            <tr><td class="dim mono">06:12:38</td><td><span class="src cx">codex</span></td><td class="mono">read config.yaml → .env</td><td><span class="pill mismatch">flagged</span></td><td class="hash"><i class="ti ti-link chain-ic"></i> <b>a3f9c1</b> ← 7e21b8</td></tr>
+            <tr><td class="dim mono">06:12:30</td><td><span class="src cc">claude-code</span></td><td class="mono">web fetch api.stripe.com</td><td><span class="pill ask">asked</span></td><td class="hash"><i class="ti ti-link chain-ic"></i> <b>7e21b8</b> ← 1c0d44</td></tr>
+            <tr><td class="dim mono">06:12:24</td><td><span class="src cc">claude-code</span></td><td class="mono">read .env</td><td><span class="pill deny">denied</span></td><td class="hash"><i class="ti ti-link chain-ic"></i> <b>1c0d44</b> ← 90ffe2</td></tr>
+            <tr><td class="dim mono">06:12:18</td><td><span class="src cc">claude-code</span></td><td class="mono">write src/webhooks.py</td><td><span class="pill allow">allowed</span></td><td class="hash"><i class="ti ti-link chain-ic"></i> <b>90ffe2</b> ← 4b8a17</td></tr>
+            <tr><td class="dim mono">06:12:09</td><td><span class="src cc">claude-code</span></td><td class="mono">pip install stripe-agent-toolkit</td><td><span class="pill ask">asked</span></td><td class="hash"><i class="ti ti-link chain-ic"></i> <b>4b8a17</b> ← e6d320</td></tr>
+            <tr><td class="dim mono">06:11:55</td><td><span class="src cx">codex</span></td><td class="mono">mcp github.create_pr</td><td><span class="pill allow">allowed</span></td><td class="hash"><i class="ti ti-link chain-ic"></i> <b>e6d320</b> ← genesis</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+</div>
+
+<!-- ================= VS CODE ================= -->
+<div class="surface" id="surface-vs">
+  <div class="note" style="margin-top:22px"><i class="ti ti-info-circle"></i> The same record → review → learn loop, docked in the editor where the developer already lives.</div>
+  <div class="vsc">
+    <div class="vsc-bar"><div class="dots"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div><div class="tt">payments-api — webhooks.py — Visual Studio Code</div></div>
+    <div class="vsc-grid">
+      <div class="vsc-act"><i class="ti ti-files"></i><i class="ti ti-search"></i><i class="ti ti-git-branch"></i><i class="ti ti-shield-check on" title="tracewall"></i><i class="ti ti-puzzle"></i></div>
+      <div class="vsc-side">
+        <div class="sh">Explorer — payments-api</div>
+        <div class="tree">
+          <div class="f"><i class="ti ti-folder"></i>src</div>
+          <div class="f ind"><i class="ti ti-file-text"></i>server.py</div>
+          <div class="f ind active"><i class="ti ti-file-text"></i>webhooks.py<span class="gd">+24</span></div>
+          <div class="f ind"><i class="ti ti-file-text"></i>models.py</div>
+          <div class="f"><i class="ti ti-file"></i>.env<span class="gd" style="color:var(--deny)">locked</span></div>
+          <div class="f"><i class="ti ti-file"></i>pyproject.toml</div>
+          <div class="sh" style="margin-top:10px">tracewall</div>
+          <div class="f"><i class="ti ti-circle-check" style="color:var(--go)"></i>9 policies active</div>
+          <div class="f"><i class="ti ti-history"></i>flow: 14 actions</div>
+        </div>
+      </div>
+      <div class="vsc-main">
+        <div class="vsc-tabs"><div class="tab active"><i class="ti ti-brand-python"></i>webhooks.py</div><div class="tab"><i class="ti ti-file-text"></i>server.py</div></div>
+        <div class="editor">
+          <div class="gutter"><div>1</div><div>2</div><div>3</div><div>4</div><div>5</div><div>6</div><div>7</div><div>8</div><div>9</div><div>10</div></div>
+          <div class="code"><div><span class="cm"># stripe webhook handler — drafted by the agent</span></div><div><span class="kw">import</span> stripe, os</div><div><span class="kw">from</span> fastapi <span class="kw">import</span> APIRouter, Request</div><div> </div><div>router = <span class="fn">APIRouter</span>()</div><div> </div><div><span class="kw">@router.post</span>(<span class="st">"/webhooks/stripe"</span>)</div><div class="hl"><span class="kw">async def</span> <span class="fn">handle</span>(req: Request):</div><div>    payload = <span class="kw">await</span> req.<span class="fn">body</span>()</div><div>    sig = req.headers.<span class="fn">get</span>(<span class="st">"stripe-signature"</span>)</div></div>
+        </div>
+        <div class="vsc-panel">
+          <div class="vsc-ptabs"><div class="pt">Problems</div><div class="pt">Output</div><div class="pt">Terminal</div><div class="pt on">tracewall<span class="b">3</span></div></div>
+          <div class="vsc-pbody">
+            <div class="mini"><div class="mi" style="background:var(--ask-deep);color:var(--ask)"><i class="ti ti-package"></i></div><div class="mc">pip install stripe-agent-toolkit</div><div class="mbtns2"><button class="mb a" onclick="toast('Allowed — saved as policy')">Allow</button><button class="mb d" onclick="toast('Blocked')">Block</button></div></div>
+            <div class="mini"><div class="mi" style="background:var(--deny-deep);color:var(--deny)"><i class="ti ti-key-off"></i></div><div class="mc">read .env <span class="dim">— auto-denied</span></div><div class="mbtns2"><span class="pill deny">denied</span></div></div>
+            <div class="mini"><div class="mi" style="background:var(--ask-deep);color:var(--ask)"><i class="ti ti-world"></i></div><div class="mc">web fetch api.stripe.com</div><div class="mbtns2"><button class="mb a" onclick="toast('Allowed for stripe.com')">Allow</button><button class="mb d" onclick="toast('Blocked')">Block</button></div></div>
+            <div class="mini" style="border-bottom:none"><div class="mi" style="background:var(--ai-deep);color:var(--ai)"><i class="ti ti-sparkles"></i></div><div class="mc" style="color:var(--ai)">Suggested: allow pip install for this repo →</div><div class="mbtns2"><button class="mb a" onclick="toast('Policy accepted')">Accept</button></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL ================= -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="mtop"><div class="shield"><i class="ti ti-shield-half"></i></div><div style="flex:1"><b>Approval needed</b><div class="m"><span class="src cc">claude-code</span> · payments-api · before it runs</div></div><i class="ti ti-x dim" style="cursor:pointer;font-size:18px" onclick="closeModal()"></i></div>
+    <div class="mbody">
+      <div class="ask-line">The agent wants to <b>install a package</b>:</div>
+      <div class="cmdbig">$ pip install stripe-agent-toolkit</div>
+      <div class="ctx"><i class="ti ti-bulb"></i><div>Part of task <b style="color:var(--txt-2)">“add Stripe webhook handler.”</b> Installing pulls third-party code — tracewall pauses the agent until you decide.</div></div>
+      <div class="chk" onclick="toggleChk(this)"><span class="box"><i class="ti ti-check"></i></span>Remember my decision as a policy for this repo</div>
+      <div class="mbtns">
+        <button class="mbtn allow" onclick="decide('Allowed once')"><i class="ti ti-check"></i>Allow once</button>
+        <button class="mbtn" onclick="decide('Always allowed pip install')"><i class="ti ti-infinity"></i>Always allow</button>
+        <button class="mbtn deny wide" onclick="decide('Blocked — agent notified')"><i class="ti ti-ban"></i>Block this action</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button class="fab" onclick="openModal()"><i class="ti ti-player-play"></i>Simulate approval prompt</button>
+<div class="toast" id="toast"><i class="ti ti-circle-check"></i><span id="toast-tx">Done</span></div>
+
+<script>
+function setSurface(which, btn){
+  document.querySelectorAll('.seg button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('surface-cp').classList.toggle('on', which==='cp');
+  document.getElementById('surface-vs').classList.toggle('on', which==='vs');
+}
+function go(page, el){
+  document.querySelectorAll('.sidebar .nav').forEach(n=>n.classList.remove('on'));
+  if(el) el.classList.add('on');
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  var t=document.getElementById('page-'+page); if(t) t.classList.add('on');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ---- review interactions ---- */
+var ACT = {
+  git:{ic:'ti-git-branch',title:'git status',cat:'read-only git',def:'allow',code:'$ git status',why:'Read-only — no side effects. Matched your “allow read-only git” rule.',cls:'ok',v:'allow'},
+  read1:{ic:'ti-file',title:'read src/server.py',cat:'file read · in repo',def:'allow',code:'read  src/server.py',why:'Source file inside the repo. Safe by default.',cls:'ok',v:'allow'},
+  pip:{ic:'ti-package',title:'pip install stripe-agent-toolkit',cat:'package-install',def:'ask',code:'$ pip install stripe-agent-toolkit',why:'Installing a package can pull arbitrary code. tracewall asks the first time — your decision becomes policy.',cls:'warn',v:'ask'},
+  write:{ic:'ti-pencil',title:'write src/webhooks.py',cat:'file write · in workspace',def:'allow',code:'write  src/webhooks.py  (+24 lines)',why:'New file created inside the workspace. Allowed and recorded.',cls:'ok',v:'allow'},
+  env:{ic:'ti-key',title:'read .env',cat:'secret-file read',def:'deny',code:'read  <em>.env</em>',why:'Secret file. Denied by default to stop credential exfiltration — no model judgement involved.',cls:'danger',v:'deny'},
+  web:{ic:'ti-world',title:'web fetch api.stripe.com',cat:'outbound request',def:'ask',code:'GET https://api.stripe.com/v1/webhooks',why:'Outbound request to a host that isn’t on your allowlist.',cls:'warn',v:'ask'},
+  mismatch:{ic:'ti-alert-triangle',title:'read config.yaml → opened .env',cat:'intent ≠ effect',def:'deny',code:'claimed: read config.yaml\n<em>actual:  opened .env</em>',why:'The agent said one thing and did another. This disagreement is the highest-signal event tracewall catches.',cls:'danger',v:'deny'},
+  mcp:{ic:'ti-brand-github',title:'mcp github.create_pr',cat:'MCP tool call',def:'ask',code:'github.create_pr(repo="web-app", title="…")',why:'A consequential MCP tool — it opens a pull request. Asked before it runs.',cls:'warn',v:'ask'}
+};
+var RULE = {
+  pip:{allow:['Allow pip install from this repo','You allowed it once. Trusted installs can pass next time — still recorded — so this stops interrupting you.','command = pip/npm install · repo = payments-api → ALLOW + log'],
+       deny:['Block package installs in this repo','You blocked it. I’ll stop installs here and notify the agent.','command = pip/npm install · repo = payments-api → DENY + log']},
+  env:{deny:['Block reading secret files','You blocked .env. I can deny secret-file reads everywhere — no model judgement, just a precise match.','path = .env, *.pem, *.key, *.crt → DENY + log']},
+  web:{allow:['Allow web fetch to api.stripe.com','You allowed this host. I’ll let Stripe API calls through and keep asking for everything else.','host = api.stripe.com → ALLOW + log']},
+  mcp:{allow:['Allow github.create_pr on web-app','You approved it. I’ll allow PR creation on this repo and keep recording each one.','mcp tool = github.create_pr · repo = web-app → ALLOW + log']},
+  mismatch:{deny:['Block on intent/effect mismatch','Always stop the agent when the file it touches differs from the file it claimed.','effect.path ≠ intent.path → DENY + alert']}
+};
+var current='pip';
+
+function pick(el){
+  document.querySelectorAll('.act').forEach(a=>a.classList.remove('sel'));
+  el.classList.add('sel');
+  current=el.getAttribute('data-id');
+  render(current);
+}
+function render(id){
+  var a=ACT[id]; if(!a) return;
+  var whyCls = a.cls==='danger'?'why-box danger':'why-box';
+  var html =
+    '<div class="dh"><i class="ti '+a.ic+'"></i><b>'+a.title.replace('→','→')+'</b></div>'+
+    '<div class="muted" style="font-size:12.5px">Intercepted before it ran.</div>'+
+    '<div class="kv"><div><span class="k">source</span><span class="v">claude-code</span></div><div><span class="k">repo</span><span class="v">payments-api</span></div><div><span class="k">category</span><span class="v">'+a.cat+'</span></div><div><span class="k">default</span><span class="v" style="color:var(--'+(a.def==='allow'?'go':a.def==='deny'?'deny':'ask')+')">'+a.def+'</span></div></div>'+
+    '<div class="codebox"><span class="cmt"># the agent wants to</span>\n'+a.code+'</div>'+
+    '<div class="'+whyCls+'"><i class="ti ti-'+(a.cls==='danger'?'alert-octagon':a.cls==='ok'?'circle-check':'alert-triangle')+'"></i><div>'+a.why+'</div></div>'+
+    '<div class="verdicts">'+
+      '<button class="vbtn allow'+(a.v==='allow'?' act':'')+'" onclick="verdict(\'allow\')"><i class="ti ti-check"></i>Allow</button>'+
+      '<button class="vbtn ask'+(a.v==='ask'?' act':'')+'" onclick="verdict(\'ask\')"><i class="ti ti-hand-stop"></i>Ask</button>'+
+      '<button class="vbtn deny'+(a.v==='deny'?' act':'')+'" onclick="verdict(\'deny\')"><i class="ti ti-ban"></i>Block</button>'+
+    '</div>'+
+    '<div class="ai-card" id="aicard"><div class="ah"><span class="sp"><i class="ti ti-sparkles"></i></span><b>Policy by demonstration</b></div>'+
+      '<div class="rule" id="ai-rule"></div><div class="reason" id="ai-reason"></div><div class="scope" id="ai-scope"></div>'+
+      '<div class="ai-actions"><button class="primary" onclick="acceptPolicy()"><i class="ti ti-circle-check"></i>Accept rule</button>'+
+      '<button onclick="toast(\'Opened in editor\')"><i class="ti ti-edit"></i>Edit</button>'+
+      '<button onclick="document.getElementById(\'aicard\').classList.remove(\'show\')"><i class="ti ti-x"></i>Dismiss</button></div></div>';
+  document.getElementById('detail').innerHTML = html;
+}
+function verdict(type){
+  document.querySelectorAll('#detail .vbtn').forEach(b=>b.classList.remove('act'));
+  document.querySelector('#detail .vbtn.'+type).classList.add('act');
+  var row=document.querySelector('.act[data-id="'+current+'"] [data-pill]');
+  if(row){ row.className='pill '+type+' '; row.setAttribute('data-pill',''); row.textContent = type==='allow'?'allowed':type==='deny'?'denied':'ask'; }
+  var r = (RULE[current]&&RULE[current][type]) || ['Reuse this decision','I’ll apply the same verdict to matching actions and keep every one recorded.','matches this action → '+type.toUpperCase()+' + log'];
+  document.getElementById('ai-rule').textContent=r[0];
+  document.getElementById('ai-reason').textContent=r[1];
+  document.getElementById('ai-scope').textContent=r[2];
+  document.getElementById('aicard').classList.add('show');
+}
+function acceptPolicy(){
+  document.getElementById('aicard').classList.remove('show');
+  toast('Policy added — it will enforce on the next run');
+  var c=document.querySelector('[data-page="policies"] .count'); if(c) c.textContent=String(parseInt(c.textContent||'9')+1);
+}
+
+/* ---- modal + misc ---- */
+function openModal(){document.getElementById('overlay').classList.add('show');}
+function closeModal(){document.getElementById('overlay').classList.remove('show');}
+function decide(msg){closeModal();toast(msg);}
+function toggleChk(el){var b=el.querySelector('.box');var on=b.innerHTML.trim()!=='';b.innerHTML=on?'':'<i class="ti ti-check"></i>';b.style.background=on?'transparent':'var(--go)';}
+function toast(msg){var t=document.getElementById('toast');document.getElementById('toast-tx').textContent=msg;t.classList.add('show');clearTimeout(window._tt);window._tt=setTimeout(()=>t.classList.remove('show'),2400);}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+render('pip');
+</script>
+</body>
+</html>

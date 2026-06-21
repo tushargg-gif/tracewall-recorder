@@ -16,15 +16,15 @@ Paste the commands you ran:
 
 ```bash
 pytest
-agentproof --help
-agentproof-recorder --help
+tracewall --help
+tracewall-recorder --help
 ```
 
-## AgentProof Recorder impact
+## tracewall Recorder impact
 
-- [ ] Keeps `agentproof` import compatibility
-- [ ] Keeps `agentproof` CLI compatibility
-- [ ] Keeps `.agentproof` storage compatibility
+- [ ] Keeps `tracewall` import compatibility
+- [ ] Keeps `tracewall` CLI compatibility
+- [ ] Keeps `.tracewall` storage compatibility
 - [ ] Does not claim tamper-proof behavior
 - [ ] Adds or updates tests when behavior changes
 

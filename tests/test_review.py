@@ -6,7 +6,7 @@ import os
 import subprocess
 import sys
 
-from agentproof.review import (
+from tracewall.review import (
     export_review_html,
     handle_api,
     load_verdicts,
@@ -23,7 +23,7 @@ def _cli(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
     env["PYTHONPATH"] = str(ROOT / "src")
     return subprocess.run(
-        [sys.executable, "-m", "agentproof", *args],
+        [sys.executable, "-m", "tracewall", *args],
         cwd=cwd, text=True, capture_output=True, env=env, check=False,
     )
 
@@ -100,7 +100,7 @@ def test_html_renders_actions_and_export(tmp_path: Path):
     rid = _make_run(tmp_path)
     html = render_review_html(review_state(rid, cwd=tmp_path), live=True)
     assert "echo hi" in html
-    assert "AgentProof" in html
+    assert "tracewall" in html
     out = export_review_html(rid, tmp_path / "review.html", cwd=tmp_path)
     assert out.exists()
     assert "echo hi" in out.read_text(encoding="utf-8")

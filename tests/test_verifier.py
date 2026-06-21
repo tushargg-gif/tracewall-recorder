@@ -1,5 +1,5 @@
-from agentproof.contracts import TaskContract
-from agentproof.verifier import build_checks, requires_regression_file_change
+from tracewall.contracts import TaskContract
+from tracewall.verifier import build_checks, requires_regression_file_change
 
 
 def test_verifier_flags_forbidden_and_unrelated_changes(tmp_path):

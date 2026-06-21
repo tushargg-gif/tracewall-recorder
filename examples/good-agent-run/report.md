@@ -1,4 +1,4 @@
-# AgentProof Recorder Report
+# tracewall Recorder Report
 
 Task: Fix expired JWT refresh bug
 Task ID: AUTH-142

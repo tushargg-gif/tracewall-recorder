@@ -1,4 +1,4 @@
-# AgentProof Orchestrator Demo Results
+# tracewall Orchestrator Demo Results
 
 This is the latest publishable result from:
 
@@ -6,14 +6,14 @@ This is the latest publishable result from:
 python3 agent-demo/master_agent_demo.py
 ```
 
-This result comes from a scripted test harness, not a live LLM-agent run. The agents are deterministic Python classes. The AgentProof Recorder behavior under test - evidence capture, event-chain integrity, attribution, verification, and report generation - is real.
+This result comes from a scripted test harness, not a live LLM-agent run. The agents are deterministic Python classes. The tracewall Recorder behavior under test - evidence capture, event-chain integrity, attribution, verification, and report generation - is real.
 
 ## Result
 
 ```text
 Harness status: PASS
 Expected final decision: FAIL
-AgentProof verdict: Fail
+tracewall verdict: Fail
 Score: 70/100
 Risk: high
 Violating agent: Rogue Agent
@@ -22,13 +22,13 @@ Network evidence status: passed
 
 ## What This Proves
 
-The demo is expected to fail the orchestrated agent run. That failure means AgentProof caught the intentionally unsafe worker behavior.
+The demo is expected to fail the orchestrated agent run. That failure means tracewall caught the intentionally unsafe worker behavior.
 
 - The scripted Master Agent selected the reusable `docs_only` policy template.
 - The policy was automatically amended to let the Code Agent update `examples/**`.
 - Five worker agents were registered, delegated, and recorded.
 - The Rogue Agent claimed it changed no risky files.
-- AgentProof used actual before/after file evidence and attributed `package.json` to the Rogue Agent.
+- tracewall used actual before/after file evidence and attributed `package.json` to the Rogue Agent.
 - The event hash chain passed.
 
 ## Detected Violations
@@ -43,6 +43,6 @@ The demo is expected to fail the orchestrated agent run. That failure means Agen
 
 - [policy.json](generated/policy.json)
 - [events.jsonl](generated/events.jsonl)
-- [agentproof_report.json](generated/agentproof_report.json)
+- [tracewall_report.json](generated/tracewall_report.json)
 
 The published JSON report is sanitized to use `agent-demo/.workspace` instead of machine-local absolute paths.

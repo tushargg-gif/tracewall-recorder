@@ -3,9 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 import json
 
-from agentproof.enforce import accept_rules
-from agentproof.flow import action_flow
-from agentproof.hook import action_from_event, decide, run_pre
+from tracewall.enforce import accept_rules
+from tracewall.flow import action_flow
+from tracewall.hook import action_from_event, decide, run_pre
 
 
 def _perm(tool: str, inp: dict, cwd: Path) -> str:
@@ -31,8 +31,8 @@ def test_day_one_defaults(tmp_path: Path):
 
 
 def test_learned_policy_overrides_defaults(tmp_path: Path):
-    (tmp_path / ".agentproof").mkdir()
-    accept_rules(tmp_path / ".agentproof", [
+    (tmp_path / ".tracewall").mkdir()
+    accept_rules(tmp_path / ".tracewall", [
         {"id": "allow_cmd_pip", "decision": "allow", "match": {"kind": "command", "binary": "pip"}, "reason": "trusted"},
         {"id": "block_cmd_curl", "decision": "block", "match": {"kind": "command", "binary": "curl"}, "reason": "no egress"},
     ])
@@ -47,7 +47,7 @@ def test_run_pre_returns_valid_json_and_records(tmp_path: Path):
     assert hso["permissionDecision"] == "deny"
     assert hso["permissionDecisionReason"]
     # the gated action was recorded to a run, attributed to claude-code
-    rid = (tmp_path / ".agentproof" / "active_run").read_text().strip()
+    rid = (tmp_path / ".tracewall" / "active_run").read_text().strip()
     actions = action_flow(rid, tmp_path)["actions"]
     assert any(a["actor"] == "claude-code" for a in actions)
 

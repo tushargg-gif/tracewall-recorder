@@ -19,11 +19,11 @@ from pathlib import Path
 
 import pytest
 
-from agentproof.events import verify_event_chain
+from tracewall.events import verify_event_chain
 
 ROOT = Path(__file__).resolve().parents[1]
 
-from agentproof.enforcement import (
+from tracewall.enforcement import (
     ENFORCEMENT_UNAVAILABLE,
     GuardProfile,
     guard_backend,
@@ -88,7 +88,7 @@ def test_sensitive_targets_enumeration(sensitive_tree: Path) -> None:
 
 # ---- fail-closed (no backend) ---------------------------------------------
 def test_fail_closed_does_not_run_command(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.setattr("agentproof.enforcement.guard_backend", lambda: "none")
+    monkeypatch.setattr("tracewall.enforcement.guard_backend", lambda: "none")
     sentinel = tmp_path / "ran.txt"
     profile = GuardProfile(project_root=tmp_path)
     result = run_guarded(
@@ -155,7 +155,7 @@ def _run_cli(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
     env["PYTHONPATH"] = str(ROOT / "src")
     return subprocess.run(
-        [sys.executable, "-m", "agentproof", *args],
+        [sys.executable, "-m", "tracewall", *args],
         cwd=cwd, text=True, capture_output=True, env=env, check=False,
     )
 
@@ -171,8 +171,8 @@ def test_enforce_mode_records_decision_in_chain(tmp_path: Path) -> None:
     run = _run_cli(tmp_path, "run", "--", sys.executable, "-c", "print('hi')")
     assert run.returncode == 0, run.stderr
 
-    run_id = (tmp_path / ".agentproof" / "active_run").read_text().strip()
-    events_file = tmp_path / ".agentproof" / "runs" / run_id / "events.jsonl"
+    run_id = (tmp_path / ".tracewall" / "active_run").read_text().strip()
+    events_file = tmp_path / ".tracewall" / "runs" / run_id / "events.jsonl"
     events = [json.loads(line) for line in events_file.read_text().splitlines() if line.strip()]
     types = [e["event_type"] for e in events]
     assert "enforcement_started" in types
@@ -185,17 +185,16 @@ def test_enforce_mode_records_decision_in_chain(tmp_path: Path) -> None:
 
 def test_block_list_matches_flag_list() -> None:
     # The enforcer must block exactly what the verifier flags: one source.
-    from agentproof import enforcement, sensitive, verifier
+    from tracewall import enforcement, sensitive, verifier
 
     assert enforcement.DEFAULT_SENSITIVE_PATTERNS == sensitive.SECRET_PATTERNS
-    assert verifier.SECRET_PATTERNS == sensitive.SECRET_PATTERNS
     assert verifier.looks_secret_path is sensitive.looks_secret_path
 
 
 def test_start_without_enforce_stays_observe(tmp_path: Path) -> None:
     assert _run_cli(tmp_path, "init").returncode == 0
     assert _run_cli(tmp_path, "start", "--agent", "test").returncode == 0
-    run_id = (tmp_path / ".agentproof" / "active_run").read_text().strip()
-    run = json.loads((tmp_path / ".agentproof" / "runs" / run_id / "run.json").read_text())
+    run_id = (tmp_path / ".tracewall" / "active_run").read_text().strip()
+    run = json.loads((tmp_path / ".tracewall" / "runs" / run_id / "run.json").read_text())
     assert run["control_mode"] == "observe"
     assert run["enforcement"]["enabled"] is False

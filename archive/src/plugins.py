@@ -8,10 +8,10 @@ import fnmatch
 import json
 import struct
 
-from agentproof.checks import check, sanitize_name
-from agentproof.contracts import TaskContract, match_command, match_path
-from agentproof.paths import safe_project_path
-from agentproof.recorder import sha256_file
+from tracewall.checks import check, sanitize_name
+from tracewall.contracts import TaskContract, match_command, match_path
+from tracewall.paths import safe_project_path
+from tracewall.recorder import sha256_file
 
 
 def run_verifier_plugins(

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from agentproof.insight import analyze_action, analyze_run
+from tracewall.insight import analyze_action, analyze_run
 
 
 def _cmd(title, detail=""):

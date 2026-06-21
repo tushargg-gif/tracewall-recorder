@@ -6,7 +6,7 @@ import os
 import subprocess
 import sys
 
-from agentproof.hook import action_from_event, decide
+from tracewall.hook import action_from_event, decide
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def _cli(cwd: Path, *args: str, stdin: str | None = None) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy(); env["PYTHONPATH"] = str(ROOT / "src")
-    return subprocess.run([sys.executable, "-m", "agentproof", *args], cwd=cwd, text=True,
+    return subprocess.run([sys.executable, "-m", "tracewall", *args], cwd=cwd, text=True,
                           capture_output=True, env=env, input=stdin, check=False)
 
 
@@ -33,7 +33,7 @@ def test_install_codex_writes_hooks_and_feature_flag(tmp_path: Path):
     hooks = json.loads((tmp_path / ".codex" / "hooks.json").read_text())
     pre = hooks["hooks"]["PreToolUse"][0]
     assert pre["matcher"] == "Bash"
-    assert "agentproof" in pre["hooks"][0]["command"] and "--ask-mode defer" in pre["hooks"][0]["command"]
+    assert "tracewall" in pre["hooks"][0]["command"] and "--ask-mode defer" in pre["hooks"][0]["command"]
     assert "codex_hooks = true" in (tmp_path / ".codex" / "config.toml").read_text()
 
 
@@ -41,8 +41,8 @@ def test_mcp_proxy_blocks_a_tool_call(tmp_path: Path):
     # a fresh project + a policy that blocks send_email
     assert _cli(tmp_path, "init").returncode == 0
     assert _cli(tmp_path, "start", "--agent", "codex").returncode == 0
-    from agentproof.enforce import accept_rules
-    accept_rules(tmp_path / ".agentproof", [
+    from tracewall.enforce import accept_rules
+    accept_rules(tmp_path / ".tracewall", [
         {"id": "block_tool_send_email", "decision": "block",
          "match": {"kind": "tool_call", "tool": "send_email"}, "reason": "no mass email"},
     ])

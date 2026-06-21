@@ -1,85 +1,85 @@
-%% Module import graph - AgentProof Recorder
+%% Module import graph - tracewall Recorder
 graph LR
   subgraph capture
-    agentproof_events[events]
-    agentproof_gitutils[gitutils]
-    agentproof_mcp_stdio[mcp_stdio]
-    agentproof_paths[paths]
-    agentproof_recorder[recorder]
-    agentproof_store[store]
+    tracewall_events[events]
+    tracewall_gitutils[gitutils]
+    tracewall_mcp_stdio[mcp_stdio]
+    tracewall_paths[paths]
+    tracewall_recorder[recorder]
+    tracewall_store[store]
   end
   subgraph enforcement
-    agentproof_enforcement[enforcement]
+    tracewall_enforcement[enforcement]
   end
   subgraph interface
-    agentproof___main__[__main__]
-    agentproof_cli[cli]
-    agentproof_sidecar[sidecar]
+    tracewall___main__[__main__]
+    tracewall_cli[cli]
+    tracewall_sidecar[sidecar]
   end
   subgraph orchestration
-    agentproof_orchestration[orchestration]
+    tracewall_orchestration[orchestration]
   end
   subgraph other
-    agentproof___init__[__init__]
+    tracewall___init__[__init__]
   end
   subgraph policy
-    agentproof_checks[checks]
-    agentproof_contracts[contracts]
-    agentproof_mcp_policy[mcp_policy]
-    agentproof_mcp_targets[mcp_targets]
-    agentproof_policy[policy]
-    agentproof_sensitive[sensitive]
+    tracewall_checks[checks]
+    tracewall_contracts[contracts]
+    tracewall_mcp_policy[mcp_policy]
+    tracewall_mcp_targets[mcp_targets]
+    tracewall_policy[policy]
+    tracewall_sensitive[sensitive]
   end
   subgraph reporting
-    agentproof_reports[reports]
+    tracewall_reports[reports]
   end
   subgraph verification
-    agentproof_plugins[plugins]
-    agentproof_scoring[scoring]
-    agentproof_verifier[verifier]
+    tracewall_plugins[plugins]
+    tracewall_scoring[scoring]
+    tracewall_verifier[verifier]
   end
-  agentproof___main__ --> agentproof_cli
-  agentproof_cli --> agentproof_recorder
-  agentproof_cli --> agentproof_mcp_stdio
-  agentproof_cli --> agentproof_verifier
-  agentproof_cli --> agentproof_contracts
-  agentproof_cli --> agentproof_sidecar
-  agentproof_cli --> agentproof_reports
-  agentproof_cli --> agentproof_events
-  agentproof_enforcement --> agentproof_sensitive
-  agentproof_mcp_policy --> agentproof_contracts
-  agentproof_mcp_policy --> agentproof_events
-  agentproof_mcp_stdio --> agentproof_recorder
-  agentproof_mcp_stdio --> agentproof_mcp_policy
-  agentproof_mcp_stdio --> agentproof_contracts
-  agentproof_mcp_stdio --> agentproof_store
-  agentproof_mcp_stdio --> agentproof_events
-  agentproof_plugins --> agentproof_paths
-  agentproof_plugins --> agentproof_recorder
-  agentproof_plugins --> agentproof_contracts
-  agentproof_plugins --> agentproof_checks
-  agentproof_recorder --> agentproof_gitutils
-  agentproof_recorder --> agentproof_contracts
-  agentproof_recorder --> agentproof_enforcement
-  agentproof_recorder --> agentproof_store
-  agentproof_recorder --> agentproof_events
-  agentproof_reports --> agentproof_recorder
-  agentproof_reports --> agentproof_verifier
-  agentproof_sidecar --> agentproof_mcp_targets
-  agentproof_sidecar --> agentproof_recorder
-  agentproof_sidecar --> agentproof_verifier
-  agentproof_sidecar --> agentproof_store
-  agentproof_sidecar --> agentproof_mcp_policy
-  agentproof_sidecar --> agentproof_contracts
-  agentproof_sidecar --> agentproof_reports
-  agentproof_sidecar --> agentproof_events
-  agentproof_store --> agentproof_events
-  agentproof_verifier --> agentproof_recorder
-  agentproof_verifier --> agentproof_policy
-  agentproof_verifier --> agentproof_checks
-  agentproof_verifier --> agentproof_scoring
-  agentproof_verifier --> agentproof_contracts
-  agentproof_verifier --> agentproof_store
-  agentproof_verifier --> agentproof_plugins
-  agentproof_verifier --> agentproof_sensitive
-  agentproof_verifier --> agentproof_events
+  tracewall___main__ --> tracewall_cli
+  tracewall_cli --> tracewall_recorder
+  tracewall_cli --> tracewall_mcp_stdio
+  tracewall_cli --> tracewall_verifier
+  tracewall_cli --> tracewall_contracts
+  tracewall_cli --> tracewall_sidecar
+  tracewall_cli --> tracewall_reports
+  tracewall_cli --> tracewall_events
+  tracewall_enforcement --> tracewall_sensitive
+  tracewall_mcp_policy --> tracewall_contracts
+  tracewall_mcp_policy --> tracewall_events
+  tracewall_mcp_stdio --> tracewall_recorder
+  tracewall_mcp_stdio --> tracewall_mcp_policy
+  tracewall_mcp_stdio --> tracewall_contracts
+  tracewall_mcp_stdio --> tracewall_store
+  tracewall_mcp_stdio --> tracewall_events
+  tracewall_plugins --> tracewall_paths
+  tracewall_plugins --> tracewall_recorder
+  tracewall_plugins --> tracewall_contracts
+  tracewall_plugins --> tracewall_checks
+  tracewall_recorder --> tracewall_gitutils
+  tracewall_recorder --> tracewall_contracts
+  tracewall_recorder --> tracewall_enforcement
+  tracewall_recorder --> tracewall_store
+  tracewall_recorder --> tracewall_events
+  tracewall_reports --> tracewall_recorder
+  tracewall_reports --> tracewall_verifier
+  tracewall_sidecar --> tracewall_mcp_targets
+  tracewall_sidecar --> tracewall_recorder
+  tracewall_sidecar --> tracewall_verifier
+  tracewall_sidecar --> tracewall_store
+  tracewall_sidecar --> tracewall_mcp_policy
+  tracewall_sidecar --> tracewall_contracts
+  tracewall_sidecar --> tracewall_reports
+  tracewall_sidecar --> tracewall_events
+  tracewall_store --> tracewall_events
+  tracewall_verifier --> tracewall_recorder
+  tracewall_verifier --> tracewall_policy
+  tracewall_verifier --> tracewall_checks
+  tracewall_verifier --> tracewall_scoring
+  tracewall_verifier --> tracewall_contracts
+  tracewall_verifier --> tracewall_store
+  tracewall_verifier --> tracewall_plugins
+  tracewall_verifier --> tracewall_sensitive
+  tracewall_verifier --> tracewall_events

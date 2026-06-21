@@ -8,10 +8,10 @@ import time
 
 from fastapi.testclient import TestClient
 
-from agentproof.contracts import TaskContract
-from agentproof.mcp_stdio import handle_stdio_message
-from agentproof.recorder import create_run, paths_for_run, read_json, write_json
-from agentproof.sidecar import create_app
+from tracewall.contracts import TaskContract
+from tracewall.mcp_stdio import handle_stdio_message
+from tracewall.recorder import create_run, paths_for_run, read_json, write_json
+from tracewall.sidecar import create_app
 
 
 class FakeProcess:
@@ -53,7 +53,7 @@ def test_stdio_mcp_allowed_tool_records_started_and_finished(tmp_path: Path):
         json.dumps({"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "safe_tool"}}),
     )
     assert response["result"]["ok"] is True
-    events = (tmp_path / ".agentproof" / "runs" / run["run_id"] / "events.jsonl").read_text(encoding="utf-8")
+    events = (tmp_path / ".tracewall" / "runs" / run["run_id"] / "events.jsonl").read_text(encoding="utf-8")
     assert "mcp.tool.call.started" in events
     assert "mcp.tool.call.finished" in events
 
@@ -84,12 +84,12 @@ def test_stdio_mcp_malformed_json_records_error(tmp_path: Path):
         "{not-json",
     )
     assert response["error"]["code"] == -32700
-    events = (tmp_path / ".agentproof" / "runs" / run["run_id"] / "events.jsonl").read_text(encoding="utf-8")
+    events = (tmp_path / ".tracewall" / "runs" / run["run_id"] / "events.jsonl").read_text(encoding="utf-8")
     assert "mcp.error" in events
 
 
 def test_http_mcp_proxy_forwards_and_redacts_headers(monkeypatch, tmp_path: Path):
-    client = TestClient(create_app(tmp_path / ".agentproof"))
+    client = TestClient(create_app(tmp_path / ".tracewall"))
     run = client.post(
         "/v1/runs",
         json={
@@ -129,7 +129,7 @@ def test_http_mcp_proxy_forwards_and_redacts_headers(monkeypatch, tmp_path: Path
 
             return Response()
 
-    monkeypatch.setattr("agentproof.sidecar.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr("tracewall.sidecar.httpx.AsyncClient", FakeAsyncClient)
     proxy = client.post(
         "/v1/mcp/proxies",
         json={
@@ -150,13 +150,13 @@ def test_http_mcp_proxy_forwards_and_redacts_headers(monkeypatch, tmp_path: Path
     assert captured["url"] == "https://tools.example.com/mcp"
     assert captured["headers"]["Authorization"] == "Bearer raw-secret"
     assert captured["headers"]["mcp-session-id"] == "session-1"
-    events = (tmp_path / ".agentproof" / "runs" / run["run_id"] / "events.jsonl").read_text(encoding="utf-8")
+    events = (tmp_path / ".tracewall" / "runs" / run["run_id"] / "events.jsonl").read_text(encoding="utf-8")
     assert "raw-secret" not in events
     assert "mcp.tool.call.finished" in events
 
 
 def test_http_mcp_proxy_rejects_localhost_target(tmp_path: Path):
-    client = TestClient(create_app(tmp_path / ".agentproof"))
+    client = TestClient(create_app(tmp_path / ".tracewall"))
     run = client.post(
         "/v1/runs",
         json={
@@ -182,7 +182,7 @@ def test_http_mcp_proxy_rejects_localhost_target(tmp_path: Path):
 def test_http_mcp_proxy_allows_external_target_with_allowlist(tmp_path: Path):
     client = TestClient(
         create_app(
-            tmp_path / ".agentproof",
+            tmp_path / ".tracewall",
             allowed_mcp_target_hosts=["tools.example.com"],
         )
     )
@@ -210,7 +210,7 @@ def test_http_mcp_proxy_allows_external_target_with_allowlist(tmp_path: Path):
 def test_http_mcp_proxy_rejects_non_allowlisted_target(tmp_path: Path):
     client = TestClient(
         create_app(
-            tmp_path / ".agentproof",
+            tmp_path / ".tracewall",
             allowed_mcp_target_hosts=["tools.example.com"],
         )
     )
@@ -237,7 +237,7 @@ def test_http_mcp_proxy_rejects_non_allowlisted_target(tmp_path: Path):
 
 
 def test_http_mcp_approval_timeout_returns_error(tmp_path: Path):
-    client = TestClient(create_app(tmp_path / ".agentproof"))
+    client = TestClient(create_app(tmp_path / ".tracewall"))
     run = client.post(
         "/v1/runs",
         json={
@@ -273,7 +273,7 @@ def test_http_mcp_approval_timeout_returns_error(tmp_path: Path):
 
 
 def test_approval_api_can_approve_pending_request(monkeypatch, tmp_path: Path):
-    client = TestClient(create_app(tmp_path / ".agentproof"))
+    client = TestClient(create_app(tmp_path / ".tracewall"))
     class FakeAsyncClient:
         def __init__(self, *args, **kwargs):
             pass
@@ -291,7 +291,7 @@ def test_approval_api_can_approve_pending_request(monkeypatch, tmp_path: Path):
 
             return Response()
 
-    monkeypatch.setattr("agentproof.sidecar.httpx.AsyncClient", FakeAsyncClient)
+    monkeypatch.setattr("tracewall.sidecar.httpx.AsyncClient", FakeAsyncClient)
     run = client.post(
         "/v1/runs",
         json={
@@ -349,7 +349,7 @@ def test_verification_scores_mcp_observe_violation(tmp_path: Path):
         json.dumps({"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "delete_all"}}),
     )
     assert response["result"]["ok"] is True
-    from agentproof.verifier import verify_run
+    from tracewall.verifier import verify_run
 
     verification = verify_run(run["run_id"], cwd=tmp_path)
     assert verification["risk"] == "high"
@@ -368,7 +368,7 @@ def test_mcp_runtime_evidence_avoids_shell_command_reproducibility_penalty(tmp_p
         json.dumps({"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "safe_tool"}}),
     )
     assert response["result"]["ok"] is True
-    from agentproof.verifier import verify_run
+    from tracewall.verifier import verify_run
 
     verification = verify_run(run["run_id"], cwd=tmp_path)
     assert verification["dimensions"]["reproducibility"] == 100

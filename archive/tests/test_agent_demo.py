@@ -30,12 +30,12 @@ def test_master_agent_demo_catches_rogue_worker():
     assert "Harness status: PASS" in result.stdout
     assert "Verdict: Fail" in result.stdout
     assert "Violating agent: Rogue Agent" in result.stdout
-    assert "agent-demo/generated/agentproof_report.json" in result.stdout
+    assert "agent-demo/generated/tracewall_report.json" in result.stdout
 
     generated = ROOT / "agent-demo" / "generated"
     policy_path = generated / "policy.json"
     events_path = generated / "events.jsonl"
-    report_path = generated / "agentproof_report.json"
+    report_path = generated / "tracewall_report.json"
     assert policy_path.exists()
     assert events_path.exists()
     assert report_path.exists()

@@ -5,9 +5,9 @@ import os
 import subprocess
 import sys
 
-from agentproof.flow import action_flow
-from agentproof.recommend import recommend_policy, render_recommendations
-from agentproof.review import set_verdict
+from tracewall.flow import action_flow
+from tracewall.recommend import recommend_policy, render_recommendations
+from tracewall.review import set_verdict
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,7 +17,7 @@ def _cli(cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
     env["PYTHONPATH"] = str(ROOT / "src")
     return subprocess.run(
-        [sys.executable, "-m", "agentproof", *args],
+        [sys.executable, "-m", "tracewall", *args],
         cwd=cwd, text=True, capture_output=True, env=env, check=False,
     )
 

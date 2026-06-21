@@ -10,6 +10,6 @@ Files:
 
 - `policy.json`: selected `docs_only` policy, automatic amendment history, and worker scopes.
 - `events.jsonl`: tamper-evident event stream for the orchestrated run.
-- `agentproof_report.json`: sanitized JSON report showing the expected `Fail` verdict.
+- `tracewall_report.json`: sanitized JSON report showing the expected `Fail` verdict.
 
 The result summary is in [../RESULTS.md](../RESULTS.md).

@@ -14,7 +14,7 @@ body:
     id: proposal
     attributes:
       label: Proposal
-      description: What should AgentProof Recorder do?
+      description: What should tracewall Recorder do?
     validations:
       required: true
   - type: dropdown

@@ -4,7 +4,7 @@ import {
   AlertTriangle, FileText, CircleDot, Sparkles,
 } from "lucide-react";
 
-// ---- sample data: exactly the shape agentproof `review_state` emits ----
+// ---- sample data: exactly the shape tracewall `review_state` emits ----
 const RUN = {
   run_id: "run_20260615_160652_453290",
   agent: "claude-code",
@@ -79,7 +79,7 @@ export default function ReviewUI() {
       <div className="bg-slate-900 text-white px-6 py-4 flex items-center gap-3">
         <Shield className="w-5 h-5 text-teal-300" />
         <div>
-          <div className="font-semibold text-[15px] leading-tight">AgentProof — Run Review</div>
+          <div className="font-semibold text-[15px] leading-tight">tracewall — Run Review</div>
           <div className="text-slate-400 text-xs">Review the agent's execution step by step. Your verdicts become the policy.</div>
         </div>
       </div>

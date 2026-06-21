@@ -17,8 +17,8 @@ SRC_DIR = REPO_ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from agentproof.contracts import TaskContract
-from agentproof.orchestration import (
+from tracewall.contracts import TaskContract
+from tracewall.orchestration import (
     apply_automatic_amendment,
     build_policy_from_template,
     policy_template_selected_payload,
@@ -27,19 +27,19 @@ from agentproof.orchestration import (
     worker_delegated_payload,
     worker_registered_payload,
 )
-from agentproof.recorder import (
+from tracewall.recorder import (
     create_run,
     diff_snapshots,
     paths_for_run,
-    read_json as read_agentproof_json,
+    read_json as read_tracewall_json,
     record_command,
     record_event,
     snapshot_files,
     stop_run,
-    write_json as write_agentproof_json,
+    write_json as write_tracewall_json,
 )
-from agentproof.reports import generate_report
-from agentproof.verifier import verify_run
+from tracewall.reports import generate_report
+from tracewall.verifier import verify_run
 
 
 WORKSPACE_DIR = DEMO_DIR / ".workspace"
@@ -92,7 +92,7 @@ class ProductAgent(WorkerAgent):
                     "This demo updates documentation through a master-agent flow.",
                     "",
                     "The master agent delegates documentation work, records each worker output,",
-                    "and relies on AgentProof Recorder to verify the evidence before approval.",
+                    "and relies on tracewall Recorder to verify the evidence before approval.",
                     "",
                 ]
             ),
@@ -114,7 +114,7 @@ class CopywriterAgent(WorkerAgent):
         text = path.read_text(encoding="utf-8")
         addition = (
             "\n\n## Local Master-Agent Demo\n\n"
-            "This demo shows a master agent delegating docs work while AgentProof Recorder "
+            "This demo shows a master agent delegating docs work while tracewall Recorder "
             "captures evidence and blocks trust when a worker violates policy.\n"
         )
         if "## Local Master-Agent Demo" not in text:
@@ -216,7 +216,7 @@ class MasterAgent:
         self.story_detail("Allowed at start: README.md, docs/**")
         self.story_detail("Forbidden: dependency files, secrets, CI, auth, security, network calls")
 
-        self.story_step(3, "AgentProof Recorder starts")
+        self.story_step(3, "tracewall Recorder starts")
         contract = TaskContract.from_mapping(policy["task_contract"])
         run = create_run(contract, "Master Agent", cwd=workspace)
         run_id = run["run_id"]
@@ -227,7 +227,7 @@ class MasterAgent:
             {
                 "agent_execution": "scripted_python_classes",
                 "llm_calls": False,
-                "system_under_test": "AgentProof Recorder evidence capture, attribution, verification, and reporting",
+                "system_under_test": "tracewall Recorder evidence capture, attribution, verification, and reporting",
             },
             run_id=run_id,
             cwd=workspace,
@@ -291,12 +291,12 @@ class MasterAgent:
                 cwd=workspace,
             )
 
-        self.story_step(7, "AgentProof verifies actual file evidence")
-        stop_run(run_id, "Delegation finished. Reading AgentProof report before final decision.", cwd=workspace)
+        self.story_step(7, "tracewall verifies actual file evidence")
+        stop_run(run_id, "Delegation finished. Reading tracewall report before final decision.", cwd=workspace)
         verify_run(run_id, cwd=workspace)
         report_paths = generate_report(run_id, cwd=workspace)
 
-        exported_report = GENERATED_DIR / "agentproof_report.json"
+        exported_report = GENERATED_DIR / "tracewall_report.json"
         export_publishable_report(report_paths["json"], exported_report, workspace)
         shutil.copyfile(paths_for_run(run_id, workspace).events_file, GENERATED_DIR / "events.jsonl")
 
@@ -342,16 +342,16 @@ class MasterAgent:
         )
         subprocess.run(["git", "init"], cwd=WORKSPACE_DIR, text=True, capture_output=True, check=False)
         subprocess.run(["git", "config", "user.email", "demo@example.com"], cwd=WORKSPACE_DIR, text=True, capture_output=True, check=False)
-        subprocess.run(["git", "config", "user.name", "AgentProof Demo"], cwd=WORKSPACE_DIR, text=True, capture_output=True, check=False)
+        subprocess.run(["git", "config", "user.name", "tracewall Demo"], cwd=WORKSPACE_DIR, text=True, capture_output=True, check=False)
         subprocess.run(["git", "add", "."], cwd=WORKSPACE_DIR, text=True, capture_output=True, check=False)
         subprocess.run(["git", "commit", "-m", "baseline"], cwd=WORKSPACE_DIR, text=True, capture_output=True, check=False)
         return WORKSPACE_DIR
 
     def activate_policy(self, run_id: str, workspace: Path, policy: dict[str, Any]) -> None:
         paths = paths_for_run(run_id, workspace)
-        run = read_agentproof_json(paths.run_file)
+        run = read_tracewall_json(paths.run_file)
         run["contract"] = policy["task_contract"]
-        write_agentproof_json(paths.run_file, run)
+        write_tracewall_json(paths.run_file, run)
 
     def worker_specs(self) -> list[dict[str, Any]]:
         raw_workers = self.scenario.get("workers") or self.scenario.get("worker_agents") or []
@@ -399,7 +399,7 @@ class MasterAgent:
         }
         failures = []
         if verification.get("verdict") != "Fail":
-            failures.append("expected AgentProof verdict Fail")
+            failures.append("expected tracewall verdict Fail")
         violating_agent = worker_for_actual_file(events, "package.json") or "unknown"
         if violating_agent != "Rogue Agent":
             failures.append("expected Rogue Agent attribution from actual file diff")
@@ -435,7 +435,7 @@ class MasterAgent:
         }
 
     def print_decision(self, decision: dict[str, Any]) -> None:
-        print("AgentProof compared worker claims with actual file evidence.")
+        print("tracewall compared worker claims with actual file evidence.")
         print("\nSummary")
         print(f"  Verdict: {decision['actual_verdict']}")
         print(f"  Score: {decision['score']}/100")
@@ -453,14 +453,14 @@ class MasterAgent:
         print("\nEvidence files generated")
         print("  - agent-demo/generated/policy.json")
         print("  - agent-demo/generated/events.jsonl")
-        print("  - agent-demo/generated/agentproof_report.json")
+        print("  - agent-demo/generated/tracewall_report.json")
         print(f"\nHarness status: {'PASS' if decision['harness_passed'] else 'FAIL'}")
 
     def print_story_header(self) -> None:
-        print("\nAgentProof Recorder: Orchestrator Demo")
+        print("\ntracewall Recorder: Orchestrator Demo")
         print("Testing whether a master agent can manage workers and still catch a bad action.")
         print("Demo mode: scripted local agents; no LLM calls are made.")
-        print("AgentProof recording, attribution, and verification are real.")
+        print("tracewall recording, attribution, and verification are real.")
 
     def story_step(self, number: int, title: str) -> None:
         if self.story_mode:
@@ -494,7 +494,7 @@ def reset_demo_dirs() -> None:
     if WORKSPACE_DIR.exists():
         shutil.rmtree(WORKSPACE_DIR)
     GENERATED_DIR.mkdir(parents=True, exist_ok=True)
-    for path in ["policy.json", "events.jsonl", "agentproof_report.json"]:
+    for path in ["policy.json", "events.jsonl", "tracewall_report.json"]:
         target = GENERATED_DIR / path
         if target.exists():
             target.unlink()
@@ -539,7 +539,7 @@ def format_list(values: list[str]) -> str:
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run the AgentProof orchestrator demo.")
+    parser = argparse.ArgumentParser(description="Run the tracewall orchestrator demo.")
     parser.add_argument("--demo", action="store_true", help="Run with screen-recording-friendly story output.")
     parser.add_argument("--story", action="store_true", help="Alias for --demo.")
     parser.add_argument("--compact", action="store_true", help="Run with compact output.")

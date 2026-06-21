@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { execFile } from "child_process";
 
-// --- run the agentproof CLI in the workspace -------------------------------
+// --- run the tracewall CLI in the workspace -------------------------------
 
 function workspaceCwd(): string | undefined {
   return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
@@ -15,8 +15,8 @@ function cli(args: string[]): Promise<string> {
       return;
     }
     const bin =
-      vscode.workspace.getConfiguration("agentproof").get<string>("cliPath") ||
-      "agentproof";
+      vscode.workspace.getConfiguration("tracewall").get<string>("cliPath") ||
+      "tracewall";
     execFile(bin, args, { cwd, maxBuffer: 16 * 1024 * 1024 }, (err, stdout, stderr) => {
       if (err) {
         reject(new Error(stderr?.trim() || err.message));
@@ -34,8 +34,8 @@ let reviewPanel: vscode.WebviewPanel | undefined;
 async function openReview(context: vscode.ExtensionContext) {
   if (!reviewPanel) {
     reviewPanel = vscode.window.createWebviewPanel(
-      "agentproofReview",
-      "AgentProof — Review",
+      "tracewallReview",
+      "tracewall — Review",
       vscode.ViewColumn.Beside,
       { enableScripts: true, retainContextWhenHidden: true }
     );
@@ -46,11 +46,11 @@ async function openReview(context: vscode.ExtensionContext) {
           await cli(["verdict", "--seq", String(msg.seq), "--decision", msg.decision]);
         } else if (msg.type === "recommend") {
           await cli(["recommend", "--accept"]);
-          vscode.window.showInformationMessage("AgentProof: policy updated from your reviews.");
+          vscode.window.showInformationMessage("tracewall: policy updated from your reviews.");
         }
         await refreshReview();
       } catch (e: any) {
-        vscode.window.showErrorMessage("AgentProof: " + e.message);
+        vscode.window.showErrorMessage("tracewall: " + e.message);
       }
     });
   }
@@ -67,7 +67,7 @@ async function refreshReview() {
     reviewPanel.webview.html = messageHtml(
       "Nothing to review yet",
       e.message +
-        "\n\nRun `agentproof init` and `agentproof install-hook` in this folder, then use Claude Code so actions are captured."
+        "\n\nRun `tracewall init` and `tracewall install-hook` in this folder, then use Claude Code so actions are captured."
     );
   }
 }
@@ -76,8 +76,8 @@ async function refreshReview() {
 
 async function openPolicies() {
   const panel = vscode.window.createWebviewPanel(
-    "agentproofPolicy",
-    "AgentProof — Active Policy",
+    "tracewallPolicy",
+    "tracewall — Active Policy",
     vscode.ViewColumn.Beside,
     { enableScripts: true }
   );
@@ -94,32 +94,32 @@ async function openPolicies() {
 async function installHook() {
   try {
     const out = await cli(["install-hook"]);
-    vscode.window.showInformationMessage("AgentProof: " + out.split("\n")[0]);
+    vscode.window.showInformationMessage("tracewall: " + out.split("\n")[0]);
   } catch (e: any) {
-    vscode.window.showErrorMessage("AgentProof: " + e.message);
+    vscode.window.showErrorMessage("tracewall: " + e.message);
   }
 }
 
 export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
-    vscode.commands.registerCommand("agentproof.openReview", () => openReview(context)),
-    vscode.commands.registerCommand("agentproof.openPolicies", () => openPolicies()),
-    vscode.commands.registerCommand("agentproof.installHook", () => installHook()),
-    vscode.commands.registerCommand("agentproof.recommendAccept", async () => {
+    vscode.commands.registerCommand("tracewall.openReview", () => openReview(context)),
+    vscode.commands.registerCommand("tracewall.openPolicies", () => openPolicies()),
+    vscode.commands.registerCommand("tracewall.installHook", () => installHook()),
+    vscode.commands.registerCommand("tracewall.recommendAccept", async () => {
       try {
         await cli(["recommend", "--accept"]);
-        vscode.window.showInformationMessage("AgentProof: policy updated from your reviews.");
+        vscode.window.showInformationMessage("tracewall: policy updated from your reviews.");
         await refreshReview();
       } catch (e: any) {
-        vscode.window.showErrorMessage("AgentProof: " + e.message);
+        vscode.window.showErrorMessage("tracewall: " + e.message);
       }
     })
   );
 
   const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-  status.text = "$(shield) AgentProof";
+  status.text = "$(shield) tracewall";
   status.tooltip = "Review your agent's actions";
-  status.command = "agentproof.openReview";
+  status.command = "tracewall.openReview";
   status.show();
   context.subscriptions.push(status);
 }

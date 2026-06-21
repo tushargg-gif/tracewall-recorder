@@ -1,10 +1,10 @@
-# AgentProof Recorder Report
+# tracewall Recorder Report
 
 Task: Bad orchestrated run
 Task ID: BAD-001
 Agent: bad-master-agent
 Run ID: run_20260512_042503_6138f7
-Repository: /private/var/folders/2n/nsgy7tns7tv52ghxjw_v1lx00000gn/T/agentproof-bad-agent-ywf9q4ba
+Repository: /private/var/folders/2n/nsgy7tns7tv52ghxjw_v1lx00000gn/T/tracewall-bad-agent-ywf9q4ba
 Duration: 0s
 Verdict: Fail
 Score: 55/100

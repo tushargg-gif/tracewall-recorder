@@ -1,19 +1,19 @@
 # Limitations
 
-AgentProof Recorder is early alpha.
+Tracewall Recorder is early alpha.
 
 ## Current Limitations
 
-- Evidence is stored locally under `.agentproof/`.
+- Evidence is stored locally under `.tracewall/`.
 - Local evidence is tamper-evident, not tamper-proof.
-- The CLI records commands only when they are run through `agentproof run --`.
+- The CLI records commands only when they are run through `tracewall run --`.
 - Verification is heuristic and task-contract driven.
 - The score is a review signal, not a model benchmark.
-- AgentProof Recorder complements CI; it does not replace CI.
+- Tracewall Recorder complements CI; it does not replace CI.
 
 ## Known Product Boundaries
 
-AgentProof Recorder is not:
+Tracewall Recorder is not:
 
 - a coding agent
 - an LLM framework

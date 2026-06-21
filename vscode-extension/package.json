@@ -1,27 +1,27 @@
 {
-  "name": "agentproof-vscode",
-  "displayName": "AgentProof",
+  "name": "tracewall-vscode",
+  "displayName": "tracewall",
   "description": "Review and govern your coding agent's actions — recorded, risk-flagged, allow/block — right inside VS Code.",
   "version": "0.1.0",
-  "publisher": "agentproof",
+  "publisher": "tracewall",
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Other"],
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
-      { "command": "agentproof.openReview", "title": "AgentProof: Review Latest Run" },
-      { "command": "agentproof.openPolicies", "title": "AgentProof: View Active Policy" },
-      { "command": "agentproof.installHook", "title": "AgentProof: Install Claude Code Hook" },
-      { "command": "agentproof.recommendAccept", "title": "AgentProof: Learn Policy from Reviews" }
+      { "command": "tracewall.openReview", "title": "tracewall: Review Latest Run" },
+      { "command": "tracewall.openPolicies", "title": "tracewall: View Active Policy" },
+      { "command": "tracewall.installHook", "title": "tracewall: Install Claude Code Hook" },
+      { "command": "tracewall.recommendAccept", "title": "tracewall: Learn Policy from Reviews" }
     ],
     "configuration": {
-      "title": "AgentProof",
+      "title": "tracewall",
       "properties": {
-        "agentproof.cliPath": {
+        "tracewall.cliPath": {
           "type": "string",
-          "default": "agentproof",
-          "description": "Path to the agentproof CLI (or e.g. 'python3 -m agentproof' won't work here — use an absolute path to the agentproof executable if it isn't on PATH)."
+          "default": "tracewall",
+          "description": "Path to the tracewall CLI (or e.g. 'python3 -m tracewall' won't work here — use an absolute path to the tracewall executable if it isn't on PATH)."
         }
       }
     }

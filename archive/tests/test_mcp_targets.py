@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from agentproof.mcp_targets import validate_mcp_target_url
+from tracewall.mcp_targets import validate_mcp_target_url
 
 
 @pytest.mark.parametrize(

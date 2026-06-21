@@ -1,14 +1,14 @@
 # Contributing
 
-Thanks for considering a contribution to AgentProof Recorder.
+Thanks for considering a contribution to tracewall Recorder.
 
 This project is early alpha. The best contributions are focused, testable, and directly related to evidence capture, verification, reporting, or documentation.
 
 ## Development Setup
 
 ```bash
-git clone https://github.com/tushargg-gif/AgentProof-Recorder
-cd AgentProof-Recorder
+git clone https://github.com/tushargg-gif/tracewall-Recorder
+cd tracewall-Recorder
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install -e ".[dev]"
@@ -19,10 +19,10 @@ pytest
 
 Do not break these without a clear migration plan:
 
-- Python import package: `agentproof`
-- CLI command: `agentproof`
-- CLI alias: `agentproof-recorder`
-- local storage directory: `.agentproof`
+- Python import package: `tracewall`
+- CLI command: `tracewall`
+- CLI alias: `tracewall-recorder`
+- local storage directory: `.tracewall`
 
 ## Pull Request Checklist
 

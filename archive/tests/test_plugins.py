@@ -3,8 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 import struct
 
-from agentproof.contracts import TaskContract
-from agentproof.plugins import (
+from tracewall.contracts import TaskContract
+from tracewall.plugins import (
     artifact_checks,
     browser_checks,
     data_checks,

@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from agentproof.contracts import TaskContract, load_contract, match_command, match_path
+from tracewall.contracts import TaskContract, load_contract, match_command, match_path
 
 
 def test_path_matching_supports_recursive_patterns():

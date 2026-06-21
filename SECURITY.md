@@ -1,6 +1,6 @@
 # Security Policy
 
-AgentProof Recorder is early alpha local developer tooling. Please report security issues carefully.
+tracewall Recorder is early alpha local developer tooling. Please report security issues carefully.
 
 ## Supported Versions
 
@@ -33,6 +33,6 @@ Security-sensitive areas include:
 
 ## Current Security Model
 
-AgentProof Recorder creates tamper-evident local evidence. It does not claim tamper-proof storage. A user or process with write access to the working directory can still alter local files.
+tracewall Recorder creates tamper-evident local evidence. It does not claim tamper-proof storage. A user or process with write access to the working directory can still alter local files.
 
 For details, read [docs/security-model.md](docs/security-model.md).

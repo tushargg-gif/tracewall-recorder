@@ -10,32 +10,32 @@ import httpx
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 
-from agentproof.contracts import TaskContract
-from agentproof.events import now_iso, redact_secrets
-from agentproof.mcp_policy import (
+from tracewall.contracts import TaskContract
+from tracewall.events import now_iso, redact_secrets
+from tracewall.mcp_policy import (
     approval_error,
     block_error,
     decision_event_payload,
     evaluate_mcp_request,
     method_event_type,
 )
-from agentproof.mcp_targets import validate_mcp_target_url
-from agentproof.recorder import create_run, paths_for_run, read_json, record_event, stop_run, write_json
-from agentproof.reports import generate_report
-from agentproof.store import Store
-from agentproof.verifier import verify_run
+from tracewall.mcp_targets import validate_mcp_target_url
+from tracewall.recorder import create_run, paths_for_run, read_json, record_event, stop_run, write_json
+from tracewall.reports import generate_report
+from tracewall.store import Store
+from tracewall.verifier import verify_run
 
 
 def create_app(
-    root: Path | str = ".agentproof",
+    root: Path | str = ".tracewall",
     auth_token: str | None = None,
     allowed_mcp_target_hosts: list[str] | None = None,
 ) -> FastAPI:
     root_path = Path(root).resolve()
-    project_root = root_path.parent if root_path.name == ".agentproof" else root_path
-    agentproof_root = project_root / ".agentproof"
-    store = Store(agentproof_root)
-    app = FastAPI(title="AgentProof Recorder Sidecar")
+    project_root = root_path.parent if root_path.name == ".tracewall" else root_path
+    tracewall_root = project_root / ".tracewall"
+    store = Store(tracewall_root)
+    app = FastAPI(title="tracewall Recorder Sidecar")
     app.state.project_root = project_root
     app.state.store = store
     app.state.raw_proxy_headers = {}
@@ -319,7 +319,7 @@ def run_sidecar(
 
     if host == "0.0.0.0" and not auth_token:
         print(
-            "warning: AgentProof Recorder sidecar is bound to 0.0.0.0 without --auth-token",
+            "warning: tracewall Recorder sidecar is bound to 0.0.0.0 without --auth-token",
             file=sys.stderr,
         )
     uvicorn.run(

@@ -1,6 +1,6 @@
 # Verification Model
 
-AgentProof Recorder verifies recorded evidence against the task contract.
+Tracewall Recorder verifies recorded evidence against the task contract.
 
 It does not prove that code is correct. It checks whether the recorded run provides enough evidence to trust, review, block, or rerun the work.
 
